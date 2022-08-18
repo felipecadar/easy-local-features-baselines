@@ -1,0 +1,6 @@
+[submodule "submodules/superglue"]
+	path = submodules/superglue
+	url = https://github.com/magicleap/SuperGluePretrainedNetwork/
+[submodule "submodules/disk"]
+	path = submodules/disk
+	url = https://github.com/cvlab-epfl/disk
