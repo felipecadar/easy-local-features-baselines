@@ -1,0 +1,13 @@
+torch>=1.12
+torchvision>=0.12
+h5py==3.7.0
+imageio==2.23.0
+kapture==1.1.8
+matplotlib==3.5.2
+numpy==1.23.0rc3
+Pillow==9.4.0
+pydegensac==0.1.2
+scipy==1.8.1
+setuptools==62.3.4
+tensorflow==2.11.0
+tqdm==4.64.0
