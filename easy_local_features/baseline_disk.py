@@ -1,5 +1,5 @@
 import sys, os
-disk_folder = os.path.dirname(os.path.realpath(__file__)) + '/submodules/disk/'
+disk_folder = os.path.dirname(os.path.realpath(__file__)) + '/submodules/git_disk/'
 sys.path.insert(0, disk_folder)
 from disk import DISK, Features
 

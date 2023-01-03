@@ -1,5 +1,5 @@
 import sys, os
-r2d2_folder = os.path.dirname(os.path.realpath(__file__)) + '/submodules/r2d2/'
+r2d2_folder = os.path.dirname(os.path.realpath(__file__)) + '/submodules/git_r2d2/'
 sys.path.insert(0, r2d2_folder)
 import os, pdb
 from PIL import Image

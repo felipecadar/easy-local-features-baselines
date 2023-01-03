@@ -1,5 +1,5 @@
 import sys, os
-sp_folder = os.path.dirname(os.path.realpath(__file__)) + '/SuperGlue/'
+sp_folder = os.path.dirname(os.path.realpath(__file__)) + '/submodules/git_superglue/'
 sys.path.insert(0, sp_folder)
 from models.superglue import SuperGlue
 

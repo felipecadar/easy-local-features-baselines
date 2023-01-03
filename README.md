@@ -2,13 +2,17 @@
 
 Just some scripts to make things easier for the local features baselines.
 
+# Installation
+
+```bash
+pip install -r requirements.txt
+pip install .
+```
+
 # How to use
 
 ```python
-import sys
-sys.path.append('path/to/easy-local-features-baselines')
-
-from baseline_r2d2 import R2D2_baseline
+from easy_local_features_baselines.baseline_r2d2 import R2D2_baseline
 
 img = cv2.imread("assets/notredame.png")
 
@@ -20,7 +24,7 @@ keypoints, descriptors = extractor.detectAndCompute(img)
 ```
 # TODO
 
-- [ ] Add a script to download the datasets
-- [ ] Add a setup.py to make it a pip package
+- [x] Add a setup.py to make it a pip package
+- [ ] Add a script to download some datasets
 - [ ] Add a download script for the pretrained models
 - [ ] Add more baselines :)
