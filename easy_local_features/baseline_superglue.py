@@ -33,14 +33,28 @@ class SuperGlue_baseline():
 
     def match(self, img0, kps0, desc0, img1, kps1, desc1):
 
-        keypoints0 = torch.tensor([[kp.pt[0], kp.pt[1]] for kp in kps0]).to(self.DEV).unsqueeze(0)
-        keypoints1 = torch.tensor([[kp.pt[0], kp.pt[1]] for kp in kps1]).to(self.DEV).unsqueeze(0)
+        if kps0 is None or kps1 is None:
+            return [], []
 
-        scores0 = torch.tensor([kp.response for kp in kps0]).to(self.DEV).unsqueeze(0)
-        scores1 = torch.tensor([kp.response for kp in kps1]).to(self.DEV).unsqueeze(0)
+        if len(kps0) == 0 or len(kps1) == 0:
+            return [], []
+
+        if isinstance(kps0[0] , cv2.KeyPoint):
+            keypoints0 = torch.tensor([kp.pt for kp in kps0]).to(self.DEV).unsqueeze(0).float()
+            keypoints1 = torch.tensor([kp.pt for kp in kps1]).to(self.DEV).unsqueeze(0).float()
+
+            scores0 = torch.tensor([kp.response for kp in kps0]).to(self.DEV).unsqueeze(0).float()
+            scores1 = torch.tensor([kp.response for kp in kps1]).to(self.DEV).unsqueeze(0).float()
+
+        if isinstance(kps0, np.ndarray):
+            keypoints0 = torch.tensor(kps0).to(self.DEV).unsqueeze(0).float()
+            keypoints1 = torch.tensor(kps1).to(self.DEV).unsqueeze(0).float()
+
+            scores0 = torch.ones(len(kps0)).to(self.DEV).unsqueeze(0).float()
+            scores1 = torch.ones(len(kps1)).to(self.DEV).unsqueeze(0).float()
     
-        descriptors0 = torch.tensor(desc0).to(self.DEV).unsqueeze(0)
-        descriptors1 = torch.tensor(desc1).to(self.DEV).unsqueeze(0)
+        descriptors0 = torch.tensor(desc0.T).to(self.DEV).unsqueeze(0).float()
+        descriptors1 = torch.tensor(desc1.T).to(self.DEV).unsqueeze(0).float()
     
         inp = {
             'image0': self._toTorch(img0),
@@ -60,6 +74,9 @@ class SuperGlue_baseline():
         matches1 = res['matches1'][0].to(self.CPU).numpy()
         matching_scores0 = res['matching_scores0'][0].to(self.CPU).numpy()
         matching_scores1 = res['matching_scores1'][0].to(self.CPU).numpy()
+
+        matching_scores0[matching_scores0 == 0] = 1e-9
+        matching_scores1[matching_scores1 == 0] = 1e-9
 
         matches1to2 = [cv2.DMatch(i,j,1/s) for i,[j,s] in enumerate(zip(matches0, matching_scores0))]
         matches2to1 = [cv2.DMatch(i,j,1/s) for i,[j,s] in enumerate(zip(matches1, matching_scores1))]

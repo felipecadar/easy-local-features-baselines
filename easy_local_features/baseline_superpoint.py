@@ -36,7 +36,7 @@ class SuperPoint_baseline():
             res = self.model({'image': image})
 
         keypoints   = res['keypoints'][0].to(self.CPU).numpy()
-        descriptors = res['descriptors'][0].to(self.CPU).numpy()
+        descriptors = res['descriptors'][0].to(self.CPU).numpy().T
         scores      = res['scores'][0].to(self.CPU).numpy()
 
         cv_kps = [cv2.KeyPoint(kp[0], kp[1], 1, -1, s, 0, -1) for kp, s in zip(keypoints, scores)]
