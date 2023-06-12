@@ -12,15 +12,18 @@ pip install .
 # How to use
 
 ```python
-from easy_local_features_baselines.baseline_r2d2 import R2D2_baseline
+from easy_local_features import DEAL
+# from easy_local_features import DALF, DISK, R2D2, SuperPoint, SuperGlue
 
+# Load an image
 img = cv2.imread("assets/notredame.png")
 
-extractor = R2D2_baseline()
+# Initialize the extractor
+extractor = DEAL()
 
+# Return keypoints and descriptors just like OpenCV
 keypoints, descriptors = extractor.detectAndCompute(img)
 
-...
 ```
 # TODO
 
@@ -28,3 +31,7 @@ keypoints, descriptors = extractor.detectAndCompute(img)
 - [ ] Add a script to download some datasets
 - [ ] Add a download script for the pretrained models
 - [ ] Add more baselines :)
+  - [ ] ASLFeat
+  - [ ] DELF
+  - [ ] LoFTR
+  - [ ] DKM
