@@ -24,7 +24,7 @@ from thinplate import pytorch as TPS
 import pyrootutils
 root = pyrootutils.find_root()
 
-class DALF_extractor:
+class DALF_baseline:
     """
     Class for extracting local features (keypoints and descriptors) using the DALF method.
 
@@ -907,7 +907,7 @@ class UNet(nn.Module):
 
 if __name__ == "__main__":
     img = cv2.imread(str(root / "assets" / "notredame.png"))
-    extractor = DALF_extractor()
+    extractor = DALF_baseline()
 
     # Extract keypoints and descriptors
     kpts, descr = extractor.detectAndCompute(img)
