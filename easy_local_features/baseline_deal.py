@@ -21,7 +21,7 @@ class DEAL_baseline():
             cache_path = os.path.join(os.path.expanduser('~'), '.cache', 'torch', 'hub', 'checkpoints', 'DEAL')
         else:
             cache_path = model_path
-            
+
         if not os.path.exists(cache_path):
             os.makedirs(cache_path, exist_ok=True)
 
