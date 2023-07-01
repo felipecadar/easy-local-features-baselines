@@ -1,20 +1,19 @@
-import sys, os
-r2d2_folder = os.path.dirname(os.path.realpath(__file__)) + '/submodules/git_r2d2/'
-sys.path.insert(0, r2d2_folder)
-import os, pdb
-from PIL import Image
+import os
 import numpy as np
 import torch
-
-from tools import common
-from tools.dataloader import norm_RGB
-from nets.patchnet import *
-from extract import load_network, NonMaxSuppression, extract_multiscale
-
-import torch
-import numpy as np
-from functools import partial
+import wget
 import cv2
+
+from easy_local_features.submodules.git_r2d2.tools import common
+from easy_local_features.submodules.git_r2d2.tools.dataloader import norm_RGB
+from easy_local_features.submodules.git_r2d2.nets.patchnet import *
+from easy_local_features.submodules.git_r2d2.extract import load_network, NonMaxSuppression, extract_multiscale
+
+# from tools import common
+# from tools.dataloader import norm_RGB
+# from nets.patchnet import *
+# from extract import load_network, NonMaxSuppression, extract_multiscale
+
 
 # Pretrained models
 # -----------------
@@ -31,13 +30,23 @@ import cv2
 # r2d2_WASF_N8_big.pt	1.0M	10K	0.692
 # faster2d2_WASF_N8_big.pt	1.0M	5K	0.650
 
+models_URLs = {
+    'faster2d2_WASF_N8_big': 'https://github.com/naver/r2d2/raw/master/models/faster2d2_WASF_N16.pt',
+    'faster2d2_WASF_N16': 'https://github.com/naver/r2d2/raw/master/models/faster2d2_WASF_N8_big.pt',
+    'r2d2_WAF_N16': 'https://github.com/naver/r2d2/raw/master/models/r2d2_WAF_N16.pt',
+    'r2d2_WASF_N8_big': 'https://github.com/naver/r2d2/raw/master/models/r2d2_WASF_N16.pt',
+    'r2d2_WASF_N16': 'https://github.com/naver/r2d2/raw/master/models/r2d2_WASF_N8_big.pt',
+}
+
 RGB_mean = [0.485, 0.456, 0.406]
 RGB_std  = [0.229, 0.224, 0.225]
 
 class R2D2_baseline():
     def __init__(self,
                 max_keypoints=2048,
-                model_name='r2d2_WASF_N16.pt',
+                pretrained_weigts='r2d2_WASF_N16',
+                model_path=None,
+                device=-1,
                 rel_thr=0.7,
                 rep_thr=0.7,
                 scale_f=2**0.25,
@@ -47,7 +56,6 @@ class R2D2_baseline():
                 max_size=1024):
 
         self.top_k = max_keypoints
-        self.model_name = model_name
         self.rel_thr = rel_thr
         self.rep_thr = rep_thr
         self.scale_f = scale_f
@@ -56,15 +64,31 @@ class R2D2_baseline():
         self.min_size = min_size
         self.max_size = max_size
 
-        self.DEV   = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+        self.DEV   = torch.device('cuda' if (torch.cuda.is_available() and device>=0) else 'cpu')
         self.CPU   = torch.device('cpu')
 
-        model_path = r2d2_folder + 'models/' + model_name
-
-        if torch.cuda.is_available():
+        if (torch.cuda.is_available() and device >= 0):
             iscuda = common.torch_set_gpu([0])
         else:
             iscuda = False
+
+        if model_path is None:
+            assert pretrained_weigts in list(models_URLs.keys()), f'If a model path is not defined, the pretrained_weigts should be one of: {list(models_URLs.keys())} '
+
+            url = models_URLs[pretrained_weigts]
+            cache_path = os.path.join(os.path.expanduser('~'), '.cache', 'torch', 'hub', 'checkpoints', 'R2D2')
+            model_name = url.split('/')[-1]
+            
+            if not os.path.exists(cache_path):
+                os.makedirs(cache_path, exist_ok=True)
+
+            cache_path = os.path.join(cache_path, model_name)
+            if not os.path.exists(cache_path):
+                print(f'Downloading R2D2 model...')
+                wget.download(url, cache_path)
+                print('Done.')
+
+            model_path = cache_path
 
         # load the network...
         self.net = load_network(model_path)
@@ -113,12 +137,16 @@ class R2D2_baseline():
         raise NotImplemented
 
 if __name__ == "__main__":
-    img = cv2.imread("assets/notredame.png")
-
+    import pyrootutils
+    root = pyrootutils.find_root()
+    
+    img = cv2.imread(str(root / "assets" / "notredame.png"))
+    img = cv2.resize(img, (0,0), fx=0.5, fy=0.5)
     extractor = R2D2_baseline()
 
     keypoints, descriptors = extractor.detectAndCompute(img)
 
     output_image = cv2.drawKeypoints(img, keypoints, 0, (0, 0, 255))
 
-    cv2.imwrite("r2d2_test.png", output_image)
+    cv2.imshow('img', output_image)
+    cv2.waitKey(0)

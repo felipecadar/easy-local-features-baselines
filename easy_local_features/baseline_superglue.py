@@ -1,18 +1,41 @@
 import sys, os
-sp_folder = os.path.dirname(os.path.realpath(__file__)) + '/submodules/git_superglue/'
-sys.path.insert(0, sp_folder)
-from models.superglue import SuperGlue
+
+from easy_local_features.submodules.git_superglue.models.superglue import SuperGlue
 
 import torch
 import numpy as np
 from functools import partial
 import cv2
+import wget
+import pyrootutils
+root = pyrootutils.find_root()
 
 class SuperGlue_baseline():
-    def __init__(self, weights='indoor', sinkhorn_iterations=100, match_threshold=0.2, descriptor_dim=256):
-        self.DEV   = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    def __init__(self, weights='indoor', sinkhorn_iterations=100, match_threshold=0.2, descriptor_dim=256, device=-1, model_path=None):
+        self.DEV   = torch.device(f'cuda:{device}' if (torch.cuda.is_available() and device>=0) else 'cpu')
         self.CPU   = torch.device('cpu')
     
+        if model_path is None:
+            assert weights in ['indoor', 'outdoor'], "weights must be either 'indoor' or 'outdoor'"
+            if weights == 'indoor':
+                url = 'https://github.com/magicleap/SuperGluePretrainedNetwork/raw/master/models/weights/superglue_indoor.pth'
+            else: # outdoor
+                url = 'https://github.com/magicleap/SuperGluePretrainedNetwork/raw/master/models/weights/superglue_outdoor.pth'
+
+            cache_path = os.path.join(os.path.expanduser('~'), '.cache', 'torch', 'hub', 'checkpoints', 'SuperGlue')
+            model_name = url.split('/')[-1]
+            
+            if not os.path.exists(cache_path):
+                os.makedirs(cache_path, exist_ok=True)
+
+            cache_path = os.path.join(cache_path, model_name)
+            if not os.path.exists(cache_path):
+                print(f'Downloading SuperGlue {weights} model...')
+                wget.download(url, cache_path)
+                print('Done.')
+
+            model_path = cache_path        
+
         config = {
             'descriptor_dim': descriptor_dim,
             'weights': weights,
@@ -20,6 +43,7 @@ class SuperGlue_baseline():
             'GNN_layers': ['self', 'cross'] * 9,
             'sinkhorn_iterations': sinkhorn_iterations,
             'match_threshold': match_threshold,
+            'model_path': model_path,
         }
 
         self.model = SuperGlue(config)
@@ -87,7 +111,7 @@ if __name__ == "__main__":
     import pdb
     from baseline_superpoint import SuperPoint_baseline
 
-    img = cv2.imread("../assets/notredame.png")
+    img = cv2.imread(str(root / "assets" / "notredame.png"))
     extractor = SuperPoint_baseline()
     matcher = SuperGlue_baseline()
 
@@ -99,5 +123,5 @@ if __name__ == "__main__":
     matched_img2 = cv2.drawMatches(img, keypoints0, img, keypoints0, matches2to1, None)
 
     stacked = np.vstack([matched_img1, matched_img2])
-
-    cv2.imwrite("sg_test.png", stacked)
+    cv2.imshow("matches", stacked)
+    cv2.waitKey(0)
