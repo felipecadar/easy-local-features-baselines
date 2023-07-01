@@ -16,7 +16,7 @@ else:
 
 setup(
     name='easy_local_features',
-    version='0.2.2',
+    version='0.3.0',
     author='eucadar',
     author_email='python@eucadar.com',
     packages=find_packages(exclude=('tests', 'docs', 'assets')),

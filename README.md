@@ -4,11 +4,6 @@ Just some scripts to make things easier for the local features baselines.
 
 # Installation
 
-First of all, lets make sure you have download all the submodules of this repository.
-
-```bash
-git submodule update --init --recursive
-```
 
 I suggest using a conda environment to install the requirements. You can create one using the following command.
 
@@ -27,14 +22,18 @@ pip install .
 # How to use
 
 ```python
-from easy_local_features import DEAL
-# from easy_local_features import DALF, DISK, R2D2, SuperPoint, SuperGlue
+from easy_local_features.baseline_deal import DEAL_baseline
+# from easy_local_features.baseline_dalf import DALF_baseline
+# from easy_local_features.baseline_disk import DISK_baseline
+# from easy_local_features.baseline_r2d2 import R2D2_baseline
+# from easy_local_features.baseline_superglue import SuperGlue_baseline
+# from easy_local_features.baseline_superpoint import SuperPoint_baseline
 
 # Load an image
 img = cv2.imread("assets/notredame.png")
 
 # Initialize the extractor
-extractor = DEAL()
+extractor = DEAL_baseline()
 
 # Return keypoints and descriptors just like OpenCV
 keypoints, descriptors = extractor.detectAndCompute(img)
@@ -47,6 +46,6 @@ keypoints, descriptors = extractor.detectAndCompute(img)
 - [ ] Add a download script for the pretrained models
 - [ ] Add more baselines :)
   - [ ] ASLFeat
-  - [ ] DELF
+  - [x] DELF
   - [ ] LoFTR
   - [ ] DKM
