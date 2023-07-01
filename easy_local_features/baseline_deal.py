@@ -6,7 +6,7 @@ import pyrootutils
 root = pyrootutils.find_root()
 
 class DEAL_baseline():
-    def __init__(self, max_kps=1024, device_id=0, model_path=None):
+    def __init__(self, max_kps=1024, device_id=-1, model_path=None):
 
         self.max_kps = max_kps
         self.device_id = device_id
@@ -87,4 +87,8 @@ if __name__ == "__main__":
 
     keypoints0, descriptors0 = extractor.detectAndCompute(img)
     
-    print("keypoints0", len(keypoints0))
+    # Visualize keypoints
+    img_kpts = cv2.drawKeypoints(img, keypoints0, None, color=(0, 255, 0), flags=0)
+
+    cv2.imshow("Keypoints", img_kpts)
+    cv2.waitKey(0)

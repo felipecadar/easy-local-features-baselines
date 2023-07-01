@@ -4,6 +4,21 @@ Just some scripts to make things easier for the local features baselines.
 
 # Installation
 
+First of all, lets make sure you have download all the submodules of this repository.
+
+```bash
+git submodule update --init --recursive
+```
+
+I suggest using a conda environment to install the requirements. You can create one using the following command.
+
+```bash
+conda create -n elf python=3.9 # the python version is not so critical, but I used 3.9.
+conda activate elf
+```
+
+Now we can insall the requirements using pip.
+
 ```bash
 pip install -r requirements.txt
 pip install .

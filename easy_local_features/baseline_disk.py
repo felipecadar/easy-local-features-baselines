@@ -1,14 +1,15 @@
-import sys, os
-disk_folder = os.path.dirname(os.path.realpath(__file__)) + '/submodules/git_disk/'
-sys.path.insert(0, disk_folder)
-from disk import DISK, Features
+import pyrootutils
+root = pyrootutils.find_root()
 
-import torch, h5py, imageio, os, argparse
+# disk_folder = str(root / 'easy_local_features' / 'submodules' / 'git_disk') + '/'
+
+from easy_local_features.submodules.git_disk.disk import DISK
+
+import torch
 import numpy as np
 import torch.nn.functional as F
 from functools import partial
-from tqdm import tqdm
-import cv2
+import cv2, os, wget
 
 class Image:
     def __init__(self, bitmap, orig_shape=None):
@@ -68,13 +69,29 @@ class Image:
 
 
 class DISK_baseline():
-    def __init__(self, window=8, desc_dim=128, mode='nms', max_feat=2048, model_path=disk_folder+'depth-save.pth', auto_resize=True):
-        self.DEV   = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    def __init__(self, window=8, desc_dim=128, mode='nms', max_feat=2048, model_path=None, auto_resize=True, device=-1):
         self.CPU   = torch.device('cpu')
+        self.DEV   = torch.device(f'cuda:{device}' if (torch.cuda.is_available() and device >= 0) else 'cpu')
         self.auto_resize = auto_resize
         self.ratio = 0
 
         self.model = DISK(window=window, desc_dim=desc_dim)
+
+        if model_path is None:
+            url = 'https://github.com/cvlab-epfl/disk/raw/master/depth-save.pth'
+            cache_path = os.path.join(os.path.expanduser('~'), '.cache', 'torch', 'hub', 'checkpoints', 'DISK')
+            
+            if not os.path.exists(cache_path):
+                os.makedirs(cache_path, exist_ok=True)
+
+            cache_path = os.path.join(cache_path, 'depth-save.pth')
+            if not os.path.exists(cache_path):
+                print('Downloading DISK model...')
+                wget.download(url, cache_path)
+                print('Done.')
+
+            model_path = cache_path
+
         state_dict = torch.load(model_path, map_location='cpu')
 
         # print(state_dict.keys())
@@ -175,9 +192,8 @@ class DISK_baseline():
         # TODO convert KeyPoints to mask
 
 if __name__ == "__main__":
-    import pdb
-    img = cv2.imread("../assets/notredame.png")
-    img = cv2.resize(img, None, fx=0.9, fy=1)
+    img = cv2.imread(str(root / "assets" / "notredame.png"))
+    img = cv2.resize(img, (0,0), fx=0.5, fy=0.5)
 
     extractor = DISK_baseline()
 
@@ -185,4 +201,5 @@ if __name__ == "__main__":
 
     output_image = cv2.drawKeypoints(img, keypoints, 0, (0, 0, 255))
 
-    cv2.imwrite("disk_test.png", output_image)
+    cv2.imshow("output", output_image)
+    cv2.waitKey(0)
