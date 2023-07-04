@@ -44,6 +44,7 @@ keypoints, descriptors = extractor.detectAndCompute(img)
 - [x] Add a setup.py to make it a pip package
 - [ ] Make a general maching class
   - The idea is to have a class that can match images using any local feature extractor and any matching method.
+- [ ] Fix requirements to install automatically with the package (maybe)
 - [ ] Add a script to download some datasets
 - [ ] Add a download script for the pretrained models
 - [ ] Add more baselines :)
