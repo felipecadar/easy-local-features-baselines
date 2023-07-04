@@ -22,12 +22,12 @@ pip install .
 # How to use
 
 ```python
-from easy_local_features.baseline_deal import DEAL_baseline
-# from easy_local_features.baseline_dalf import DALF_baseline
-# from easy_local_features.baseline_disk import DISK_baseline
-# from easy_local_features.baseline_r2d2 import R2D2_baseline
-# from easy_local_features.baseline_superglue import SuperGlue_baseline
-# from easy_local_features.baseline_superpoint import SuperPoint_baseline
+from easy_local_features.features.baseline_deal import DEAL_baseline
+# from easy_local_features.features.baseline_dalf import DALF_baseline
+# from easy_local_features.features.baseline_disk import DISK_baseline
+# from easy_local_features.features.baseline_r2d2 import R2D2_baseline
+# from easy_local_features.features.baseline_superpoint import SuperPoint_baseline
+# from easy_local_features.matching.baseline_superglue import SuperGlue_baseline
 
 # Load an image
 img = cv2.imread("assets/notredame.png")
@@ -42,6 +42,8 @@ keypoints, descriptors = extractor.detectAndCompute(img)
 # TODO
 
 - [x] Add a setup.py to make it a pip package
+- [ ] Make a general maching class
+  - The idea is to have a class that can match images using any local feature extractor and any matching method.
 - [ ] Add a script to download some datasets
 - [ ] Add a download script for the pretrained models
 - [ ] Add more baselines :)
@@ -52,5 +54,5 @@ keypoints, descriptors = extractor.detectAndCompute(img)
   - [x] SuperGlue
   - [x] DELF
   - [ ] ASLFeat
-  - [ ] LoFTR
+  - [x] LoFTR
   - [ ] DKM
