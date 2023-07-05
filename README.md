@@ -49,11 +49,14 @@ keypoints, descriptors = extractor.detectAndCompute(img)
 - [ ] Add a download script for the pretrained models
 - [ ] Add more baselines :)
   - [x] DEAL
+    - [ ] Add LICENSE file
   - [x] R2D2
   - [x] DISK
   - [x] SuperPoin
   - [x] SuperGlue
-  - [x] DELF
+  - [x] DALF
+    - [ ] Add LICENSE file
   - [ ] ASLFeat
   - [x] LoFTR
+    - [ ] Add LICENSE file
   - [ ] DKM
