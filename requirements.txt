@@ -16,7 +16,5 @@ tensorboard
 pyrootutils
 kornia
 wget
-./easy_local_features/submodules/git_disk/submodules/torch-localize
-./easy_local_features/submodules/git_disk/submodules/torch-dimcheck
-./easy_local_features/submodules/git_disk/submodules/unets
+
 git+https://github.com/cheind/py-thin-plate-spline

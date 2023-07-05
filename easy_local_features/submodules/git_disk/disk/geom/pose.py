@@ -2,7 +2,8 @@ import typing, torch, math
 import numpy as np
 import torch.nn.functional as F
 
-from torch_dimcheck import dimchecked
+# from torch_dimcheck import dimchecked
+# from ...submodules.torch_dimcheck import dimchecked
 
 RAD_TO_DEG = 57.29
 
@@ -83,7 +84,7 @@ class Pose(typing.NamedTuple):
             
         return PoseError(θ_deg, Δ_T)
         
-def _normalized_cosine_error(v1: ['N'], v2: ['N']):
+def _normalized_cosine_error(v1, v2):
     EPS = 1e-15
 
     def normalize(v):
@@ -98,8 +99,8 @@ def _normalized_cosine_error(v1: ['N'], v2: ['N']):
 
     return err
 
-@dimchecked
-def matrix_to_quaternion(M: [3, 3]) -> [4]:
+# @dimchecked
+def matrix_to_quaternion(M):
     '''
     adapted from
     https://github.com/vcg-uvic/sfm_benchmark/blob/2b28c76635f754cbc32f30571adf80f3eba13f4c/utils/eval_helper.py#L170

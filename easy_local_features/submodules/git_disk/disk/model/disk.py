@@ -1,8 +1,8 @@
 import torch
 import numpy as np
 
-from torch_dimcheck import dimchecked
-from unets import Unet, thin_setup
+# from ...submodules.torch_dimcheck import dimchecked
+from ..unets import Unet, thin_setup
 
 from .detector import Detector
 from ..common.structs import NpArray, Features
@@ -28,9 +28,8 @@ class DISK(torch.nn.Module):
         )
         self.detector = Detector(window=window)
 
-    @dimchecked
-    def _split(self, unet_output: ['B', 'C', 'H', 'W']) \
-                -> (['B', 'C-1', 'H', 'W'], ['B', 1, 'H', 'W']):
+    # @dimchecked
+    def _split(self, unet_output):
         '''
         Splits the raw Unet output into descriptors and detection heatmap.
         '''
@@ -41,10 +40,10 @@ class DISK(torch.nn.Module):
 
         return descriptors, heatmap
 
-    @dimchecked
+    # @dimchecked
     def features(
         self,
-        images: ['B', 'C', 'H', 'W'],
+        images,
         kind='rng',
         **kwargs
     ) -> NpArray[Features]:
