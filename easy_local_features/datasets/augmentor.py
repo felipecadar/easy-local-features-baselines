@@ -96,7 +96,7 @@ class AugmentationPipe(nn.Module):
                 self, device,
                 img_dir=None,
                 load_dataset = False,
-                warp_resolution = (1200, 900),
+                warp_resolution = (448, 448),
                 out_resolution = (400, 300),
                 max_num_imgs = 40,
                 num_test_imgs = 200,
@@ -163,6 +163,17 @@ class AugmentationPipe(nn.Module):
 
             self.TPS = True
 
+    def load_image(self, path):
+        im = cv2.imread(path)
+        halfH, halfW = im.shape[0]//2, im.shape[1]//2
+        if halfH > halfW:
+            im = np.rot90(im)
+            halfH, halfW = halfW, halfH
+        im = im[halfH-self.dims[1]//2:halfH+self.dims[1]//2, halfW-self.dims[0]//2:halfW+self.dims[0]//2, :]
+        if im.shape[0] != self.dims[1] or im.shape[1] != self.dims[0]:
+            im = cv2.resize(im, self.dims)
+
+        return im
 
     def norm_pts_grid(self, x):
         if len(x.size()) == 2:
