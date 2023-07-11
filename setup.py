@@ -16,12 +16,20 @@ else:
 
 setup(
     name='easy_local_features',
-    version='0.3.1',
+    version='0.3.2',
     author='eucadar',
     author_email='python@eucadar.com',
     packages=find_packages(exclude=('tests', 'docs', 'assets')),
     include_package_data=True,
-    install_requires=[],
+    install_requires=[
+        'numpy',
+        'scipy',
+        'torch>=1.9.1',
+        'torchvision>=0.9.1',
+        'opencv-python',
+        'wget',
+        'tqdm',
+    ],
     long_description_content_type='text/markdown',
     long_description=long_description,
 )

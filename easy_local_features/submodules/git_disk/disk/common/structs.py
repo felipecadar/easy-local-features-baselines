@@ -1,6 +1,7 @@
 import torch, abc, sys
 
-from torch_dimcheck import dimchecked
+# from torch_dimcheck import dimchecked
+# from ...submodules.torch_dimcheck import dimchecked
 
 # the class/object below is there for making type annotations like
 # def my_function(args) -> NpArray[OutputType]
@@ -17,8 +18,8 @@ else:
     NpArray = _NpArray()
 
 class Features:
-    @dimchecked
-    def __init__(self, kp: ['N', 2], desc: ['N', 'F'], kp_logp: ['N']):
+    # @dimchecked
+    def __init__(self, kp, desc, kp_logp):
         assert kp.device == desc.device
         assert kp.device == kp_logp.device
 
@@ -57,11 +58,11 @@ class Features:
 
 class MatchDistribution(abc.ABC):
     @abc.abstractmethod
-    def sample(self) -> [2, 'K']:
+    def sample(self):
         pass
 
     @abc.abstractmethod
-    def mle(self) -> [2, 'K']:
+    def mle(self):
         pass
 
     @abc.abstractmethod
@@ -95,8 +96,8 @@ class MatchDistribution(abc.ABC):
 
 
 class MatchedPairs:
-    @dimchecked
-    def __init__(self, kps1: ['N', 2], kps2: ['M', 2], matches: [2, 'K']):
+    # @dimchecked
+    def __init__(self, kps1, kps2, matches):
         self.kps1    = kps1
         self.kps2    = kps2
         self.matches = matches

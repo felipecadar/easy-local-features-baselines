@@ -1,7 +1,8 @@
 import torch
 from torch import nn
 from torch.distributions import Categorical
-from torch_dimcheck import dimchecked
+# from torch_dimcheck import dimchecked
+# from ...submodules.torch_dimcheck import dimchecked
 
 from ..common.structs import Features, NpArray, MatchDistribution
 from ..geom import distance_matrix
@@ -29,22 +30,22 @@ class ConsistentMatchDistribution(MatchDistribution):
         self._dense_logp = None
         self._dense_p    = None
 
-    @dimchecked
-    def dense_p(self) -> ['N', 'M']:
+    # @dimchecked
+    def dense_p(self):
         if self._dense_p is None:
             self._dense_p = self._cat_I.probs * self._cat_T.probs.T
 
         return self._dense_p
 
-    @dimchecked
-    def dense_logp(self) -> ['N', 'M']:
+    # @dimchecked
+    def dense_logp(self):
         if self._dense_logp is None:
             self._dense_logp = self._cat_I.logits + self._cat_T.logits.T
 
         return self._dense_logp
 
-    @dimchecked
-    def _select_cycle_consistent(self, left: ['N'], right: ['M']) -> [2, 'K']:
+    # @dimchecked
+    def _select_cycle_consistent(self, left, right):
         indexes = torch.arange(left.shape[0], device=left.device)
         cycle_consistent = right[left] == indexes
 
@@ -55,15 +56,15 @@ class ConsistentMatchDistribution(MatchDistribution):
             paired_left,
         ], dim=0)
 
-    @dimchecked
-    def sample(self) -> [2, 'K']:
+    # @dimchecked
+    def sample(self):
         samples_I = self._cat_I.sample()
         samples_T = self._cat_T.sample()
 
         return self._select_cycle_consistent(samples_I, samples_T)
 
-    @dimchecked
-    def mle(self) -> [2, 'K']:
+    # @dimchecked
+    def mle(self):
         maxes_I = self._cat_I.logits.argmax(dim=1)
         maxes_T = self._cat_T.logits.argmax(dim=1)
 

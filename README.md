@@ -22,11 +22,11 @@ pip install .
 # How to use
 
 ```python
-from easy_local_features.features.baseline_deal import DEAL_baseline
-# from easy_local_features.features.baseline_dalf import DALF_baseline
-# from easy_local_features.features.baseline_disk import DISK_baseline
-# from easy_local_features.features.baseline_r2d2 import R2D2_baseline
-# from easy_local_features.features.baseline_superpoint import SuperPoint_baseline
+from easy_local_features.feature.baseline_deal import DEAL_baseline
+# from easy_local_features.feature.baseline_dalf import DALF_baseline
+# from easy_local_features.feature.baseline_disk import DISK_baseline
+# from easy_local_features.feature.baseline_r2d2 import R2D2_baseline
+# from easy_local_features.feature.baseline_superpoint import SuperPoint_baseline
 # from easy_local_features.matching.baseline_superglue import SuperGlue_baseline
 
 # Load an image
@@ -49,11 +49,14 @@ keypoints, descriptors = extractor.detectAndCompute(img)
 - [ ] Add a download script for the pretrained models
 - [ ] Add more baselines :)
   - [x] DEAL
+    - [ ] Add LICENSE file
   - [x] R2D2
   - [x] DISK
   - [x] SuperPoin
   - [x] SuperGlue
-  - [x] DELF
+  - [x] DALF
+    - [ ] Add LICENSE file
   - [ ] ASLFeat
   - [x] LoFTR
+    - [ ] Add LICENSE file
   - [ ] DKM

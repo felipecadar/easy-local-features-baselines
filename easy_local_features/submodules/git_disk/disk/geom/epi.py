@@ -1,9 +1,10 @@
 import torch
 
-from torch_dimcheck import dimchecked
+# from torch_dimcheck import dimchecked
+# from ...submodules.torch_dimcheck import dimchecked
 
-@dimchecked
-def cross_product_matrix(v: [3]) -> [3, 3]:
+# @dimchecked
+def cross_product_matrix(v):
     ''' following
         en.wikipedia.org/wiki/Cross_product#Conversion_to_matrix_multiplication
     '''
@@ -14,24 +15,24 @@ def cross_product_matrix(v: [3]) -> [3, 3]:
         [-v[1],  v[0],     0]
     ], dtype=v.dtype, device=v.device)
 
-@dimchecked
-def xy_to_xyw(xy: [2, 'N']) -> [3, 'N']:
+# @dimchecked
+def xy_to_xyw(xy):
     ones = torch.ones(1, xy.shape[1], device=xy.device, dtype=xy.dtype)
     return torch.cat([xy, ones], dim=0)
 
-@dimchecked
-def ims2E(im1, im2) -> [3, 3]:
+# @dimchecked
+def ims2E(im1, im2):
     R = im2.R @ im1.R.T
     T = im2.T - R @ im1.T
     return cross_product_matrix(T) @ R
 
-@dimchecked
-def ims2F(im1, im2) -> [3, 3]:
+# @dimchecked
+def ims2F(im1, im2):
     E = ims2E(im1, im2)
     return im2.K_inv.T @ E @ im1.K_inv
  
-@dimchecked
-def symdimm(x1: [2, 'N'], x2: [2, 'M'], im1, im2) -> ['N', 'M']:
+# @dimchecked
+def symdimm(x1, x2, im1, im2):
     x1n = im1.K_inv @ xy_to_xyw(x1)
     x2n = im2.K_inv @ xy_to_xyw(x2)
 
@@ -49,8 +50,8 @@ def symdimm(x1: [2, 'N'], x2: [2, 'M'], im1, im2) -> ['N', 'M']:
     dist = x2_E_x1.pow(2) * norm
     return dist.T
 
-@dimchecked
-def asymmdist(x1: [2, 'N'], x2: [2, 'M'], F: [3, 3]) -> ['N', 'M']:
+# @dimchecked
+def asymmdist(x1, x2, F):
     '''
     following http://www.cs.toronto.edu/~jepson/csc420/notes/epiPolarGeom.pdf
     (page 12)
@@ -64,13 +65,13 @@ def asymmdist(x1: [2, 'N'], x2: [2, 'M'], F: [3, 3]) -> ['N', 'M']:
     dist  = (Ft_x2 / norm).T @ x1_h
     return dist.T
 
-@dimchecked
-def asymmdist_from_imgs(x1: [2, 'N'], x2: [2, 'M'], im1, im2) -> ['N', 'M']:
+# @dimchecked
+def asymmdist_from_imgs(x1, x2, im1, im2):
     F = ims2F(im1, im2)
     return asymmdist(x1, x2, F)
 
-@dimchecked
-def p_asymmdist(x1: [2, 'N'], x2: [2, 'N'], F: [3, 3]) -> ['N']:
+# @dimchecked
+def p_asymmdist(x1, x2, F) :
     '''
     following http://www.cs.toronto.edu/~jepson/csc420/notes/epiPolarGeom.pdf
     (page 12)
@@ -85,7 +86,7 @@ def p_asymmdist(x1: [2, 'N'], x2: [2, 'N'], F: [3, 3]) -> ['N']:
 
     return torch.einsum('ca,ca->a', (Ft_x2_n, x1_h))
 
-@dimchecked
-def p_asymmdist_from_imgs(x1: [2, 'N'], x2: [2, 'N'], im1, im2) -> ['N']:
+# @dimchecked
+def p_asymmdist_from_imgs(x1, x2, im1, im2) :
     F = ims2F(im1, im2)
     return p_asymmdist(x1, x2, F)

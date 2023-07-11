@@ -3,13 +3,15 @@ import numpy as np
 import torch.nn.functional as F
 
 from torch.distributions import Categorical, Bernoulli
-from torch_dimcheck import dimchecked
+
+# from torch_dimcheck import dimchecked
+# from ...submodules.torch_dimcheck import dimchecked
 
 from ..common.structs import NpArray, Features
 from ..model.nms import nms
 
-@dimchecked
-def select_on_last(values: [..., 'T'], indices: [...]) -> [...]:
+# @dimchecked
+def select_on_last(values, indices):
     '''
     WARNING: this may be reinventing the wheel, but I don't know how to do
     it otherwise with PyTorch.
@@ -24,10 +26,10 @@ def select_on_last(values: [..., 'T'], indices: [...]) -> [...]:
         indices[..., None]
     ).squeeze(-1)
 
-@dimchecked
+# @dimchecked
 def point_distribution(
-    logits: [..., 'T']
-) -> ([...], [...], [...]):
+    logits
+):
     '''
     Implements the categorical proposal -> Bernoulli acceptance sampling
     scheme. Given a tensor of logits, performs samples on the last dimension,
@@ -59,13 +61,13 @@ class Keypoints:
     select corresponding descriptors from unet output.
     '''
 
-    @dimchecked
-    def __init__(self, xys: ['N', 2], logp: ['N']):
+    # @dimchecked
+    def __init__(self, xys, logp):
         self.xys  = xys
         self.logp = logp
 
-    @dimchecked
-    def merge_with_descriptors(self, descriptors: ['C', 'H', 'W']) -> Features:
+    # @dimchecked
+    def merge_with_descriptors(self, descriptors) -> Features:
         '''
         Select descriptors from a dense `descriptors` tensor, at locations
         given by `self.xys`
@@ -81,8 +83,8 @@ class Detector:
     def __init__(self, window=8):
         self.window = window
 
-    @dimchecked
-    def _tile(self, heatmap: ['B', 'C', 'H', 'W']) -> ['B', 'C', 'h', 'w', 'T']:
+    # @dimchecked
+    def _tile(self, heatmap):
         '''
         Divides the heatmap `heatmap` into tiles of size (v, v) where
         v==self.window. The tiles are flattened, resulting in the last
@@ -98,8 +100,8 @@ class Detector:
                       .unfold(3, v, v) \
                       .reshape(b, c, h // v, w // v, v*v)
 
-    @dimchecked
-    def sample(self, heatmap: ['B', 1, 'H', 'W']) -> NpArray[Keypoints]:
+    # @dimchecked
+    def sample(self, heatmap) -> NpArray[Keypoints]:
         '''
             Implements the training-time grid-based sampling protocol
         '''
@@ -141,10 +143,10 @@ class Detector:
 
         return np.array(keypoints, dtype=object)
 
-    @dimchecked
+    # @dimchecked
     def nms(
         self,
-        heatmap: ['B', 1, 'H', 'W'],
+        heatmap,
         n=None,
         **kwargs
     ) -> NpArray[Keypoints]:
