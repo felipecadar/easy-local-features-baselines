@@ -2,6 +2,15 @@
   - This script contains the model definitions for detection of kps trained with policy gradient;
   - Description is performed by the deformation-aware network and optimized with hard triplet loss;
   - Detection and description are simulateously optimized to be deformation-aware.
+
+    @author: Guilherme Potje
+    @cite: @INPROCEEDINGS{potje2023cvpr,
+            author={Guilherme {Potje} and and Felipe {Cadar} and Andre {Araujo} and Renato {Martins} and Erickson R. {Nascimento}},
+            booktitle={2023 IEEE / CVF Computer Vision and Pattern Recognition (CVPR)}, 
+            title={Enhancing Deformable Local Features by Jointly Learning to Detect and Describe Keypoints}, 
+            year={2023}
+    }
+
 '''
 
 import torch
