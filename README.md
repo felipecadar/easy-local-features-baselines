@@ -60,3 +60,9 @@ keypoints, descriptors = extractor.detectAndCompute(img)
   - [x] LoFTR
     - [ ] Add LICENSE file
   - [ ] DKM
+  - [ ] ALIKED
+    - [ ] Add code 
+    - [ ] Add LICENSE file
+    - NOT WORKING ON MAC M1
+    - [ ] Test on Linux with CPU
+    - [ ] Test with CUDA
