@@ -61,8 +61,8 @@ keypoints, descriptors = extractor.detectAndCompute(img)
     - [ ] Add LICENSE file
   - [ ] DKM
   - [ ] ALIKED
-    - [ ] Add code 
-    - [ ] Add LICENSE file
     - NOT WORKING ON MAC M1
+    - [X] Add code 
+    - [X] Add LICENSE file
     - [ ] Test on Linux with CPU
     - [ ] Test with CUDA
