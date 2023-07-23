@@ -70,5 +70,4 @@ if __name__ == "__main__":
 
     matcher = LoFTR_baseline()
     res = matcher.match(img, img)
-
-    import pdb; pdb.set_trace()
+    
