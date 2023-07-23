@@ -3,9 +3,9 @@ import torch
 from torch import nn
 from torchvision.models import resnet
 
-from soft_detect import DKD
-from padder import InputPadder
-from blocks import *
+from .soft_detect import DKD
+from .padder import InputPadder
+from .blocks import *
 import time
 from torchvision.transforms import ToTensor
 
@@ -51,6 +51,7 @@ class ALIKED(nn.Module):
             scores_th: float = 0.2,
             n_limit: int = 5000, # Maximum number of keypoints to be detected
             load_pretrained: bool = True,
+            pretrained_path: str = '',
             ):
         super().__init__()
         
@@ -96,7 +97,6 @@ class ALIKED(nn.Module):
         
         # load pretrained
         if load_pretrained:
-            pretrained_path = osp.join(osp.split(__file__)[0], f'../models/{model_name}.pth')
             pretrained_path = osp.abspath(pretrained_path)
             if osp.exists(pretrained_path):
                 print(f'loading {pretrained_path}')
@@ -141,12 +141,14 @@ class ALIKED(nn.Module):
         return feature_map, score_map
 
     def forward(self, image):
-        torch.cuda.synchronize()
+        if torch.cuda.is_available():
+            torch.cuda.synchronize()
         t0 = time.time() 
         feature_map, score_map = self.extract_dense_map(image)
         keypoints, kptscores, scoredispersitys = self.dkd(score_map)
         descriptors, offsets = self.desc_head(feature_map, keypoints)
-        torch.cuda.synchronize()
+        if torch.cuda.is_available():
+            torch.cuda.synchronize()
         t1 = time.time()        
 
         return {'keypoints': keypoints,  # B N 2
