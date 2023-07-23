@@ -109,7 +109,7 @@ class SuperGlue_baseline():
 
 if __name__ == "__main__":
     import pdb
-    from baseline_superpoint import SuperPoint_baseline
+    from easy_local_features.feature.baseline_superpoint import SuperPoint_baseline
 
     img = cv2.imread(str(root / "assets" / "notredame.png"))
     extractor = SuperPoint_baseline()
