@@ -4,6 +4,15 @@ Just some scripts to make things easier for the local features baselines.
 
 # Installation
 
+```bash
+# make sure you have torch installed
+# pip install torch torchvision
+pip install easy-local-features
+```
+
+## Installing from source
+
+You may want to install from source if you want to modify the code or if you want to use the latest version. To do so, you can clone this repository and install the requirements.
 
 I suggest using a conda environment to install the requirements. You can create one using the following command.
 
@@ -12,11 +21,11 @@ conda create -n elf python=3.9 # the python version is not so critical, but I us
 conda activate elf
 ```
 
-Now we can insall the requirements using pip.
+Now we can install everything.
 
 ```bash
 pip install -r requirements.txt
-pip install .
+pip install -e .
 ```
 
 # How to use
