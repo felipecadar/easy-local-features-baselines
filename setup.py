@@ -35,7 +35,7 @@ if sys.platform != 'darwin':
 
 setup(
     name='easy_local_features',
-    version='0.3.4',
+    version='0.3.5',
     author='eucadar',
     author_email='python@eucadar.com',
     packages=find_packages(exclude=('tests', 'docs', 'assets', 'custom_ops')),

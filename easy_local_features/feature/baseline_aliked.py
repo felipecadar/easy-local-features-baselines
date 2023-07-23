@@ -18,6 +18,15 @@ models = {
 }
 
 class ALIKED_baseline():
+    """ALIKED baseline implementation.
+        model_name: str = 'aliked-n32', Choose from ['aliked-t16', 'aliked-n16', 'aliked-n16rot', 'aliked-n32']
+        top_k: int = -1, # -1 for threshold based mode, >0 for top K mode.
+        scores_th: float = 0.2, # Threshold for top K = -1 mode
+        n_limit: int = 5000, # Maximum number of keypoints to be detected
+        load_pretrained: bool = True, load pretrained model or not
+        device=-1, -1 for CPU, >=0 for GPU
+        model_path=None, use custom model path instead of the default one. 
+    """
     def __init__(self, 
                 model_name: str = 'aliked-n32',
                 top_k: int = -1, # -1 for threshold based mode, >0 for top K mode.

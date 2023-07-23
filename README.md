@@ -24,6 +24,7 @@ pip install .
 ```python
 from easy_local_features.feature.baseline_deal import DEAL_baseline
 # from easy_local_features.feature.baseline_dalf import DALF_baseline
+# from easy_local_features.feature.baseline_aliked import ALIKED_baseline
 # from easy_local_features.feature.baseline_disk import DISK_baseline
 # from easy_local_features.feature.baseline_r2d2 import R2D2_baseline
 # from easy_local_features.feature.baseline_superpoint import SuperPoint_baseline
@@ -64,5 +65,6 @@ keypoints, descriptors = extractor.detectAndCompute(img)
     - NOT WORKING ON MAC M1
     - [X] Add code 
     - [X] Add LICENSE file
+    - [X] Test on MAC M1 with CPU
     - [ ] Test on Linux with CPU
-    - [ ] Test with CUDA
+    - [x] Test with CUDA
