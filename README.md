@@ -51,20 +51,17 @@ keypoints, descriptors = extractor.detectAndCompute(img)
 - [ ] Add more baselines :)
   - [x] DEAL
     - [ ] Add LICENSE file
+  - [x] DALF
+    - [ ] Add LICENSE file
+  - [ ] DKM
+  - [ ] ASLFeat
   - [x] R2D2
   - [x] DISK
   - [x] SuperPoin
   - [x] SuperGlue
-  - [x] DALF
-    - [ ] Add LICENSE file
-  - [ ] ASLFeat
   - [x] LoFTR
-    - [ ] Add LICENSE file
-  - [ ] DKM
   - [ ] ALIKED
-    - NOT WORKING ON MAC M1
-    - [X] Add code 
-    - [X] Add LICENSE file
-    - [X] Test on MAC M1 with CPU
+    - [x] Add LICENSE file
+    - [x] Test on MAC M1 with CPU
     - [ ] Test on Linux with CPU
-    - [x] Test with CUDA
+    - [ ] Test with CUDA
