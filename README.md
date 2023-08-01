@@ -34,6 +34,7 @@ pip install -e .
 from easy_local_features.feature.baseline_deal import DEAL_baseline
 # from easy_local_features.feature.baseline_dalf import DALF_baseline
 # from easy_local_features.feature.baseline_aliked import ALIKED_baseline
+# from easy_local_features.feature.baseline_alike import ALIKE_baseline
 # from easy_local_features.feature.baseline_disk import DISK_baseline
 # from easy_local_features.feature.baseline_r2d2 import R2D2_baseline
 # from easy_local_features.feature.baseline_superpoint import SuperPoint_baseline
@@ -69,6 +70,7 @@ keypoints, descriptors = extractor.detectAndCompute(img)
   - [x] SuperPoin
   - [x] SuperGlue
   - [x] LoFTR
+  - [x] ALIKE
   - [ ] ALIKED
     - [x] Add LICENSE file
     - [x] Test on MAC M1 with CPU
