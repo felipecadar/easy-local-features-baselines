@@ -31,6 +31,7 @@ pip install -e .
 # How to use
 
 ```python
+# Choose you extractor
 from easy_local_features.feature.baseline_deal import DEAL_baseline
 # from easy_local_features.feature.baseline_dalf import DALF_baseline
 # from easy_local_features.feature.baseline_aliked import ALIKED_baseline
@@ -38,16 +39,30 @@ from easy_local_features.feature.baseline_deal import DEAL_baseline
 # from easy_local_features.feature.baseline_disk import DISK_baseline
 # from easy_local_features.feature.baseline_r2d2 import R2D2_baseline
 # from easy_local_features.feature.baseline_superpoint import SuperPoint_baseline
+
+# also a matcher
+from easy_local_features.matching.baseline_lightglue import LightGlue_baseline
 # from easy_local_features.matching.baseline_superglue import SuperGlue_baseline
+# from easy_local_features.matching.baseline_loftr import LoFTR_baseline
 
 # Load an image
 img = cv2.imread("assets/notredame.png")
 
 # Initialize the extractor
-extractor = DEAL_baseline()
+extractor = SuperPoint_baseline()
+matcher = LightGlue_baseline() # works with superpoint and disk
 
 # Return keypoints and descriptors just like OpenCV
 keypoints, descriptors = extractor.detectAndCompute(img)
+
+# Match the descriptors
+mkpts0, mkpts1, matches = matcher.match(keypoints0, keypoints1, descriptors0, descriptors1)
+
+img = cv2.drawMatches(img, keypoints, img, keypoints, matches, None, flags=cv2.DrawMatchesFlags_NOT_DRAW_SINGLE_POINTS)
+cv2.imshow("Matched", img)
+cv2.waitKey(0)
+
+
 
 ```
 # TODO
@@ -57,18 +72,16 @@ keypoints, descriptors = extractor.detectAndCompute(img)
   - The idea is to have a class that can match images using any local feature extractor and any matching method.
 - [ ] Fix requirements to install automatically with the package (maybe)
 - [ ] Add a script to download some datasets
-- [ ] Add a download script for the pretrained models
 - [ ] Add more baselines :)
   - [x] DEAL
-    - [ ] Add LICENSE file
   - [x] DALF
-    - [ ] Add LICENSE file
   - [ ] DKM
   - [ ] ASLFeat
   - [x] R2D2
   - [x] DISK
-  - [x] SuperPoin
+  - [x] SuperPoint
   - [x] SuperGlue
+  - [x] LightGlue
   - [x] LoFTR
   - [x] ALIKE
   - [ ] ALIKED
