@@ -153,12 +153,3 @@ class ALNet(nn.Module):
         return scores_map, descriptor_map
 
 
-if __name__ == '__main__':
-    from thop import profile
-
-    net = ALNet(c1=16, c2=32, c3=64, c4=128, dim=128, single_head=True)
-
-    image = torch.randn(1, 3, 640, 480)
-    flops, params = profile(net, inputs=(image,), verbose=False)
-    print('{:<30}  {:<8} GFLops'.format('Computational complexity: ', flops / 1e9))
-    print('{:<30}  {:<8} KB'.format('Number of parameters: ', params / 1e3))

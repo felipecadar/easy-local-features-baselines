@@ -15,6 +15,9 @@ opencv-python
 tensorboard
 pyrootutils
 kornia
+kornia-rs
+kornia_moons
 wget
+
 
 git+https://github.com/cheind/py-thin-plate-spline

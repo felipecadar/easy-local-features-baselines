@@ -134,13 +134,3 @@ class ALike(ALNet):
                 'time': end - start, }
 
 
-if __name__ == '__main__':
-    import numpy as np
-    from thop import profile
-
-    net = ALike(c1=32, c2=64, c3=128, c4=128, dim=128, single_head=False)
-
-    image = np.random.random((640, 480, 3)).astype(np.float32)
-    flops, params = profile(net, inputs=(image, 9999, False), verbose=False)
-    print('{:<30}  {:<8} GFLops'.format('Computational complexity: ', flops / 1e9))
-    print('{:<30}  {:<8} KB'.format('Number of parameters: ', params / 1e3))
