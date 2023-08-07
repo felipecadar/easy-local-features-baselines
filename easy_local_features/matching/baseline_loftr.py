@@ -59,15 +59,22 @@ class LoFTR_baseline:
         mkpts2 = correspondences_dict["keypoints1"].cpu().numpy()
         mconf = correspondences_dict["confidence"].cpu().numpy()
         batch_idx = correspondences_dict["batch_indexes"].cpu().numpy()
-    
-        return mkpts1, mkpts2, mconf
+
+        cv2_mkpts1 = [ cv2.KeyPoint(x=mkpt[0], y=mkpt[1], size=1) for mkpt in mkpts1 ]
+        cv2_mkpts2 = [ cv2.KeyPoint(x=mkpt[0], y=mkpt[1], size=1) for mkpt in mkpts2 ]
+        cv2_matches = [ cv2.DMatch(_imgIdx=batch_idx[i], _queryIdx=i, _trainIdx=i, _distance=1-mconf[i]) for i in range(len(mkpts1)) ]
+
+        return cv2_mkpts1, cv2_mkpts2, cv2_matches
     
 if __name__ == "__main__":
     img = cv2.imread(str(root / "assets" / "notredame.png"))
 
     img = cv2.resize(img, (0,0), fx=0.2, fy=0.2)
 
-
     matcher = LoFTR_baseline()
-    res = matcher.match(img, img)
+    cv2_mkpts1, cv2_mkpts2, cv2_matches = matcher.match(img, img)
+
+    img = cv2.drawMatches(img, cv2_mkpts1, img, cv2_mkpts2, cv2_matches, None, flags=cv2.DrawMatchesFlags_NOT_DRAW_SINGLE_POINTS)
+    cv2.imshow("img", img)
+    cv2.waitKey(0)
     
