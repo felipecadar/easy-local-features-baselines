@@ -15,23 +15,23 @@ CUSTOM_OPS = "easy_local_features/submodules/git_aliked/custom_ops/"
 EXT_MODULES = []
 
 # if not MACOS
-if sys.platform != 'darwin':
-    # if cuda
-    if cuda.is_available():
-        EXT_MODULES=[
-            CUDAExtension(
-                'easy_local_features.submodules.git_aliked.custom_ops.get_patches', 
-                [CUSTOM_OPS+'get_patches_cuda.cpp', CUSTOM_OPS+'get_patches_cuda.cu']
-            )
-        ]
-    else:
-        # build cpu version
-        EXT_MODULES=[
-            CppExtension(
-                name='easy_local_features.submodules.git_aliked.custom_ops.get_patches', 
-                sources=[CUSTOM_OPS+'get_patches_cpu.cpp']
-            )
-        ]
+# if sys.platform != 'darwin':
+#     # if cuda
+#     if cuda.is_available():
+#         EXT_MODULES=[
+#             CUDAExtension(
+#                 'easy_local_features.submodules.git_aliked.custom_ops.get_patches', 
+#                 [CUSTOM_OPS+'get_patches_cuda.cpp', CUSTOM_OPS+'get_patches_cuda.cu']
+#             )
+#         ]
+#     else:
+#         # build cpu version
+#         EXT_MODULES=[
+#             CppExtension(
+#                 name='easy_local_features.submodules.git_aliked.custom_ops.get_patches', 
+#                 sources=[CUSTOM_OPS+'get_patches_cpu.cpp']
+#             )
+#         ]
 
 setup(
     name='easy_local_features',
