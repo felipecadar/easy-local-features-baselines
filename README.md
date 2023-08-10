@@ -53,7 +53,8 @@ extractor = SuperPoint_baseline()
 matcher = LightGlue_baseline() # works with superpoint and disk
 
 # Return keypoints and descriptors just like OpenCV
-keypoints, descriptors = extractor.detectAndCompute(img)
+keypoints0, descriptors0 = extractor.detectAndCompute(img)
+keypoints1, descriptors1 = extractor.detectAndCompute(img)
 
 # Match the descriptors
 mkpts0, mkpts1, matches = matcher.match(keypoints0, keypoints1, descriptors0, descriptors1)
