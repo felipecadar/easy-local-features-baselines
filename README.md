@@ -59,7 +59,7 @@ keypoints1, descriptors1 = extractor.detectAndCompute(img)
 # Match the descriptors
 mkpts0, mkpts1, matches = matcher.match(keypoints0, keypoints1, descriptors0, descriptors1)
 
-img = cv2.drawMatches(img, keypoints, img, keypoints, matches, None, flags=cv2.DrawMatchesFlags_NOT_DRAW_SINGLE_POINTS)
+img = cv2.drawMatches(img, keypoints0, img, keypoints1, matches, None, flags=cv2.DrawMatchesFlags_NOT_DRAW_SINGLE_POINTS)
 cv2.imshow("Matched", img)
 cv2.waitKey(0)
 
