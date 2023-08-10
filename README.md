@@ -44,6 +44,7 @@ from easy_local_features.feature.baseline_superpoint import SuperPoint_baseline
 from easy_local_features.matching.baseline_lightglue import LightGlue_baseline
 # from easy_local_features.matching.baseline_superglue import SuperGlue_baseline
 # from easy_local_features.matching.baseline_loftr import LoFTR_baseline
+import cv2
 
 # Load an image
 img = cv2.imread("assets/notredame.png")
