@@ -32,13 +32,13 @@ pip install -e .
 
 ```python
 # Choose you extractor
-from easy_local_features.feature.baseline_deal import DEAL_baseline
+from easy_local_features.feature.baseline_superpoint import SuperPoint_baseline
+# from easy_local_features.feature.baseline_deal import DEAL_baseline
 # from easy_local_features.feature.baseline_dalf import DALF_baseline
 # from easy_local_features.feature.baseline_aliked import ALIKED_baseline
 # from easy_local_features.feature.baseline_alike import ALIKE_baseline
 # from easy_local_features.feature.baseline_disk import DISK_baseline
 # from easy_local_features.feature.baseline_r2d2 import R2D2_baseline
-# from easy_local_features.feature.baseline_superpoint import SuperPoint_baseline
 
 # also a matcher
 from easy_local_features.matching.baseline_lightglue import LightGlue_baseline
