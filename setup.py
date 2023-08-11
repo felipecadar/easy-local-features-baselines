@@ -1,7 +1,8 @@
 import sys
-from setuptools import setup, find_packages, Extension
-from torch.utils.cpp_extension import BuildExtension, CUDAExtension, CppExtension
-import torch.cuda as cuda
+from setuptools import setup, find_packages
+# from setuptools import setup, find_packages, Extension
+# from torch.utils.cpp_extension import BuildExtension, CUDAExtension, CppExtension
+# import torch.cuda as cuda
 
 if sys.version_info[0] < 3:
     with open('README.md') as f:
