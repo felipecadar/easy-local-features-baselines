@@ -28,7 +28,7 @@ class DEAL_baseline():
         self.deal = torch.hub.load('verlab/DEAL_NeurIPS_2021', 'DEAL', True, cache_path)
         self.deal.device = device
         self.deal.net.eval()
-        self.sift = cv2.SIFT_create(max_kps)
+        self.sift = cv2.SIFT_create(nfeatures=max_kps, contrastThreshold=0.04, edgeThreshold=10)
 
     def normalize(self, img):
         # if img is tensor, convert to numpy
@@ -83,7 +83,7 @@ class DEAL_baseline():
 
 if __name__ == "__main__":
     img = cv2.imread(str(root / "assets" / "notredame.png"))
-    extractor = DEAL_baseline()
+    extractor = DEAL_baseline(max_kps=2048, device_id=0)
 
     keypoints0, descriptors0 = extractor.detectAndCompute(img)
     

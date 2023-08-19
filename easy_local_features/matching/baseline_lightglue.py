@@ -19,7 +19,7 @@ def getLightGlueMatcher(features="superpoint"):
 class LightGlue_baseline:
     def __init__(self, features="superpoint"):
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-        self.matcher = getLightGlueMatcher(features=features)
+        self.matcher = getLightGlueMatcher(features=features).to(self.device)
 
     def match(self, keypoints0, keypoints1, descriptors0, descriptors1):
 

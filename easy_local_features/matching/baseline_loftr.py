@@ -16,8 +16,8 @@ def getLoFTR(pretrained="outdoor"):
 
 class LoFTR_baseline:
     def __init__(self, pretrained="outdoor"):
-        self.matcher = getLoFTR(pretrained=pretrained)
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        self.matcher = getLoFTR(pretrained=pretrained).to(self.device)
 
     def match(self, img1, img2):
 
