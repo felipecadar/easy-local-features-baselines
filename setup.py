@@ -51,7 +51,7 @@ setup(
         'tqdm',
         'kornia-rs',
         'kornia_moons',
-        'thinplate @ git+https://github.com/cheind/py-thin-plate-spline'
+        # 'thinplate @ git+https://github.com/cheind/py-thin-plate-spline'
     ],
     long_description_content_type='text/markdown',
     long_description=long_description,
