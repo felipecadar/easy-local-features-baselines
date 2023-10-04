@@ -36,7 +36,7 @@ EXT_MODULES = []
 
 setup(
     name='easy_local_features',
-    version='0.3.10',
+    version='0.3.11',
     author='eucadar',
     author_email='python@eucadar.com',
     packages=find_packages(exclude=('tests', 'docs', 'assets', 'custom_ops')),
