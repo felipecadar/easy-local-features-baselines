@@ -18,6 +18,6 @@ kornia
 kornia-rs
 kornia_moons
 wget
-
+yacs
 
 git+https://github.com/cheind/py-thin-plate-spline
