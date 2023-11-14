@@ -147,6 +147,10 @@ def interpolate_dense_features(pos, dense_features, return_corners=False):
 
     pos = torch.cat([i.view(1, -1), j.view(1, -1)], dim=0)
 
+    pos = pos.cpu()
+    descriptors = descriptors.cpu()
+    ids = ids.cpu()
+
     if not return_corners:
         return [descriptors, pos, ids]
     else:
@@ -155,7 +159,7 @@ def interpolate_dense_features(pos, dense_features, return_corners=False):
             torch.stack([i_top_right, j_top_right], dim=0),
             torch.stack([i_bottom_left, j_bottom_left], dim=0),
             torch.stack([i_bottom_right, j_bottom_right], dim=0)
-        ], dim=0)
+        ], dim=0).cpu()
         return [descriptors, pos, ids, corners]
 
 
@@ -250,6 +254,7 @@ def process_multiscale(image, model, scales=[.5, 1, 2]):
             )
         except Exception:
             continue
+        
         fmap_pos = fmap_pos[:, ids]
         fmap_keypoints = fmap_keypoints[:, ids]
         del ids
