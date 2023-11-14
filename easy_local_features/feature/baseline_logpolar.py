@@ -18,12 +18,14 @@ class LogPolar_baseline():
     def __init__(self, use_log_polar=True, device=-1):
         self.CPU   = torch.device('cpu')
         self.DEV   = torch.device(f'cuda:{device}' if (torch.cuda.is_available() and device >= 0) else 'cpu')
+        this_file = os.path.abspath(__file__)
+        this_dir = os.path.dirname(this_file)
 
         if use_log_polar:
-            config_path = os.path.join(ROOT, 'easy_local_features/submodules/git_logpolar/init_one_example_ptn_96.yml')
+            config_path = os.path.join(this_dir, '../submodules/git_logpolar/init_one_example_ptn_96.yml')
             weights = logpolar_weight
         else:
-            config_path = os.path.join(ROOT, 'easy_local_features/submodules/git_logpolar/init_one_example_stn_16.yml')
+            config_path = os.path.join(this_dir, '../submodules/git_logpolar/init_one_example_stn_16.yml')
             weights = cartesian_weight
 
         cfg.merge_from_file(config_path)
