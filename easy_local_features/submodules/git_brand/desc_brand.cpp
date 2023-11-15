@@ -98,6 +98,25 @@ bool load_keypoints(const std::string &filename, std::vector<cv::KeyPoint> &keyp
     return true;
 }
 
+bool write_keypoints(const std::string &filename, const std::vector<cv::KeyPoint> &keypoints)
+{
+    std::ofstream fout(filename.c_str());
+    if (fout.is_open())
+    {
+        fout << "x,y,size,angle" << std::endl;
+        for (size_t i = 0; i < keypoints.size(); ++i)
+        {
+            fout << keypoints[i].pt.x << "," << keypoints[i].pt.y << "," << keypoints[i].size << "," << keypoints[i].angle << std::endl;
+        }
+        fout.close();
+    }
+    else
+    {
+        return false;
+    }
+    return true;
+}
+
 void compute_normals(const cv::Mat &cloud, cv::Mat &normals, cv::Mat &img)
 {
   pcl::PointCloud<pcl::PointXYZ>::Ptr pcl_cloud(new pcl::PointCloud<pcl::PointXYZ>);
@@ -253,6 +272,7 @@ int main(int argc, char **argv)
     cv::Mat desc;
     brand.compute(rgb, cloud, normals, keypoints, desc);
     print_desc_to_file(desc, outfilename);
+    write_keypoints(keypoints_ref_file, keypoints);
   }
   return 0;
 }
