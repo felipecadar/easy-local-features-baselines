@@ -36,7 +36,7 @@ class TFeat_baseline():
         patches = torch.from_numpy(patches).to(self.DEV).unsqueeze(1).float() / 255.0
         desc = self.model(patches)
         desc = desc.squeeze().detach().cpu().numpy()
-        return desc, cv_kps
+        return cv_kps, desc
 
 
 
