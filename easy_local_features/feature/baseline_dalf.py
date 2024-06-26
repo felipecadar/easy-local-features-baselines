@@ -996,17 +996,3 @@ class UNet(nn.Module):
       return {'map':out, 'feat':feat}
       
 ################################################################################################################
-
-
-if __name__ == "__main__":
-    img = cv2.imread(str(root / "assets" / "notredame.png"))
-    extractor = DALF_baseline()
-
-    # Extract keypoints and descriptors
-    kpts, descr = extractor.detectAndCompute(img)
-
-    # Visualize keypoints
-    img_kpts = cv2.drawKeypoints(img, kpts, None, color=(0, 255, 0), flags=0)
-
-    cv2.imshow("Keypoints", img_kpts)
-    cv2.waitKey(0)
