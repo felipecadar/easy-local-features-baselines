@@ -32,54 +32,58 @@ pip install -e .
 
 ```python
 # Choose you extractor
-from easy_local_features.feature.baseline_superpoint import SuperPoint_baseline
+from easy_local_features.feature.baseline_aliked import ALIKED_baseline
+# from easy_local_features.feature.baseline_alike import ALIKE_baseline
 # from easy_local_features.feature.baseline_deal import DEAL_baseline
 # from easy_local_features.feature.baseline_dalf import DALF_baseline
-# from easy_local_features.feature.baseline_aliked import ALIKED_baseline
-# from easy_local_features.feature.baseline_alike import ALIKE_baseline
 # from easy_local_features.feature.baseline_disk import DISK_baseline
-# from easy_local_features.feature.baseline_r2d2 import R2D2_baseline
+# from easy_local_features.feature.baseline_dedode import DeDoDe_baseline
+# from easy_local_features.feature.baseline_d2net import D2Net_baseline
+# from easy_local_features.feature.baseline_delf import DELF_baseline
 
-# also a matcher
-from easy_local_features.matching.baseline_lightglue import LightGlue_baseline
-# from easy_local_features.matching.baseline_superglue import SuperGlue_baseline
-# from easy_local_features.matching.baseline_loftr import LoFTR_baseline
-import cv2
+
+from easy_local_features.utils import vis, io
 
 # Load an image
-img = cv2.imread("assets/notredame.png")
+image0 = io.fromPath(str(root / "assets/v_vitro/1.ppm"))
+image1 = io.fromPath(str(root / "assets/v_vitro/2.ppm"))
 
-# Initialize the extractor
-extractor = SuperPoint_baseline()
-matcher = LightGlue_baseline() # works with superpoint and disk
+# Load the extractor
+extractor = ALIKED_baseline({'top_k': 128})
 
-# Return keypoints and descriptors just like OpenCV
-keypoints0, descriptors0 = extractor.detectAndCompute(img)
-keypoints1, descriptors1 = extractor.detectAndCompute(img)
+# Macth directly
+matches = extractor.match(image0, image1)
 
-# Match the descriptors
-mkpts0, mkpts1, matches = matcher.match(keypoints0, keypoints1, descriptors0, descriptors1)
+# OR
 
-img = cv2.drawMatches(img, keypoints0, img, keypoints1, matches, None, flags=cv2.DrawMatchesFlags_NOT_DRAW_SINGLE_POINTS)
-cv2.imshow("Matched", img)
-cv2.waitKey(0)
+# Extract
+# keypoints0, descriptors0 = extractor.detectAndCompute(image0)
+# keypoints1, descriptors1 = extractor.detectAndCompute(image1)
+# matches = extractor.matcher({
+#     'descriptors0': descriptors0,
+#     'descriptors1': descriptors1,
+#})
 
-
+# Visualize
+vis.plot_pair(image0, image1)
+vis.plot_matches(matches['mkpts0'], matches['mkpts1'])
+vis.show(f"test/results/{subclass.__name__}.png")
 
 ```
-# TODO REFACTOR
 
-  - [x] ALIKE
-  - [x] ALIKED
-  - [x] DEAL
-  - [x] DALF
-  - [x] DISK
-  - [x] DeDoDe
-  - [x] D2Net
-  - [ ] SuperPoint
-  - [ ] DKM
-  - [ ] ASLFeat
-  - [ ] R2D2
-  - [ ] SuperGlue
-  - [ ] LightGlue
-  - [ ] LoFTR
+# TODO REFACTOR
+- [x] ALIKE
+- [x] ALIKED
+- [x] DEAL
+- [x] DALF
+- [x] DISK
+- [x] DeDoDe
+- [x] D2Net
+- [x] DELF
+- [ ] SuperPoint
+- [ ] DKM
+- [ ] ASLFeat
+- [ ] R2D2
+- [ ] SuperGlue
+- [ ] LightGlue
+- [ ] LoFTR
