@@ -1,14 +1,1 @@
-torch>=1.9.1
-torchvision>=0.9.1
-opencv-python
-numpy
-scipy
-wget
-tqdm
-kornia-rs
-kornia_moons
-omegaconf
-pyrootutils
-tensorflow
-tensorflow_hub
-yacs
+.
