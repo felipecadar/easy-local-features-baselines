@@ -11,6 +11,13 @@ import torch.nn.functional as F
 from functools import partial
 import cv2, os, wget
 
+from ..matching.nearest_neighbor import NearestNeighborMatcher
+from omegaconf import OmegaConf
+from .basemodel import BaseExtractor
+from ..utils.download import downloadModel
+from ..utils import ops
+
+
 class Image:
     def __init__(self, bitmap, orig_shape=None):
         self.bitmap     = bitmap
@@ -68,31 +75,33 @@ class Image:
         return F.pad(image, (0, y_pad, 0, x_pad))
 
 
-class DISK_baseline():
-    def __init__(self, window=8, desc_dim=128, mode='nms', max_feat=2048, model_path=None, auto_resize=True, device=-1):
-        self.CPU   = torch.device('cpu')
-        self.DEV   = torch.device(f'cuda:{device}' if (torch.cuda.is_available() and device >= 0) else 'cpu')
+class DISK_baseline(BaseExtractor):
+    default_conf = {
+        'window': 8,
+        'desc_dim': 128,
+        'mode': 'nms',
+        'top_k': 2048,
+        'auto_resize': True,
+    }
+    
+    def __init__(self, conf={}):
+        self.conf = conf = OmegaConf.merge(OmegaConf.create(self.default_conf), conf)
+        window = conf.window
+        desc_dim = conf.desc_dim
+        mode = conf.mode
+        max_feat = conf.top_k
+        auto_resize = conf.auto_resize
+        
+        self.DEV   = torch.device('cpu')
         self.auto_resize = auto_resize
         self.ratio = 0
 
         self.model = DISK(window=window, desc_dim=desc_dim)
 
-        if model_path is None:
-            url = 'https://github.com/cvlab-epfl/disk/raw/master/depth-save.pth'
-            cache_path = os.path.join(os.path.expanduser('~'), '.cache', 'torch', 'hub', 'checkpoints', 'DISK')
-            
-            if not os.path.exists(cache_path):
-                os.makedirs(cache_path, exist_ok=True)
+        url = 'https://github.com/cvlab-epfl/disk/raw/master/depth-save.pth'
+        model_path = downloadModel('disk', 'depth-save', url)
 
-            cache_path = os.path.join(cache_path, 'depth-save.pth')
-            if not os.path.exists(cache_path):
-                print('Downloading DISK model...')
-                wget.download(url, cache_path)
-                print('Done.')
-
-            model_path = cache_path
-
-        state_dict = torch.load(model_path, map_location='cpu')
+        state_dict = torch.load(model_path, map_location=self.DEV)
 
         # print(state_dict.keys())
         self.model.load_state_dict(state_dict['extractor'])
@@ -111,16 +120,14 @@ class DISK_baseline():
             self.extract = partial(self.model.features, kind='rng')
 
 
-    def _toImage(self, img):
-        tensor = torch.from_numpy(img).to(torch.float32)
-        if len(tensor.shape) == 2: # some images may be grayscale
-            tensor = tensor.unsqueeze(-1).expand(-1, -1, 3)
+        self.matcher = NearestNeighborMatcher()
 
-        bitmap = (tensor.permute(2, 0, 1) / 255.).to(self.DEV)
+    def _toImage(self, img):
+        bitmap = ops.prepareImage(img, batch=False).to(self.DEV)
+        img_shape = bitmap.shape[1:]
         image = Image(bitmap)
 
         if self.auto_resize:
-            img_shape = img.shape[:2]
             new_shape = [0,0]
 
             if (img_shape[0] % 16) != 0 or (img_shape[1] % 16) != 0:
@@ -131,7 +138,7 @@ class DISK_baseline():
 
         return image
 
-    def detectAndCompute(self, img, op=None):
+    def detectAndCompute(self, img):
         image = self._toImage(img)
         with torch.no_grad():
             try:
@@ -146,60 +153,54 @@ class DISK_baseline():
                 else:
                     raise
 
-        features = features.to(self.CPU)
-
         kps_crop_space = features.kp.T
         kps_img_space, mask = image.to_image_coord(kps_crop_space)
 
-        keypoints   = kps_img_space.numpy().T[mask]
-        descriptors = features.desc.numpy()[mask]
-        scores      = features.kp_logp.numpy()[mask]
+        keypoints   = kps_img_space.T[mask]
+        descriptors = features.desc[mask]
+        scores      = features.kp_logp[mask]
 
-        order = np.argsort(scores)[::-1]
+        # order = np.argsort(scores)[::-1]
+        order = torch.argsort(scores, descending=True)
 
         keypoints   = keypoints[order]
         descriptors = descriptors[order]
         scores      = scores[order]
 
-        cv_kps = [cv2.KeyPoint(kp[0], kp[1], 1, -1, s, 0, -1) for kp, s in zip(keypoints, scores)]
+        return keypoints, descriptors
+    
+    def detect(self, img):
+        return self.detectAndCompute(img)[0]
 
-        return cv_kps, descriptors
-
-    def detect(self, img, op=None):
-        cv_kps, descriptors = self.detectAndCompute(img)
-        return cv_kps
-
-    def compute(self, img, cv_kps):
+    def compute(self, image, keypoints):
         raise NotImplemented
+    
+    def to(self, device):
+        self.model.to(device)
+        self.DEV = device
 
-        image = self._toImage(img)
-        with torch.no_grad():
-            try:
-                features = self.extract(image.bitmap.unsqueeze(0)).flat[0] #batch
-            except RuntimeError as e:
-                if 'U-Net failed' in str(e):
-                    msg = ('Please use input size which is multiple of 16.'
-                           'This is because we internally use a U-Net with 4'
-                           'downsampling steps, each by a factor of 2'
-                           'therefore 2^4=16.')
-                    raise RuntimeError(msg) from e
-                else:
-                    raise
-
-        features = features.to(self.CPU)
-        descriptors = features.desc.numpy()
-
-        # TODO convert KeyPoints to mask
-
-if __name__ == "__main__":
-    img = cv2.imread(str(root / "assets" / "notredame.png"))
-    img = cv2.resize(img, (0,0), fx=0.5, fy=0.5)
-
-    extractor = DISK_baseline()
-
-    keypoints, descriptors = extractor.detectAndCompute(img)
-
-    output_image = cv2.drawKeypoints(img, keypoints, 0, (0, 0, 255))
-
-    cv2.imshow("output", output_image)
-    cv2.waitKey(0)
+    def match(self, image1, image2):
+        kp0, desc0 = self.detectAndCompute(image1)
+        kp1, desc1 = self.detectAndCompute(image2)
+        
+        data = {
+            "descriptors0": desc0.unsqueeze(0),
+            "descriptors1": desc1.unsqueeze(0),
+        }
+        
+        response = self.matcher(data)
+        
+        m0 = response['matches0'][0]
+        valid = m0 > -1
+        
+        mkpts0 = kp0[valid]
+        mkpts1 = kp1[m0[valid]]
+        
+        return {
+            'mkpts0': mkpts0,
+            'mkpts1': mkpts1,
+        }
+        
+    @property
+    def has_detector(self):
+        return True

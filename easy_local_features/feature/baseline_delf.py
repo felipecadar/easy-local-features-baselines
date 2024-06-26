@@ -1,19 +1,27 @@
 import pyrootutils
 root = pyrootutils.find_root()
 
-import numpy as np
-import cv2
-
 import tensorflow as tf
 import tensorflow_hub as hub
 
-# python3 -c "import tensorflow as tf; print(tf.config.list_physical_devices('GPU'))"
-# python3 -c "import torch; print(torch.cuda.is_available())"
+from ..matching.nearest_neighbor import NearestNeighborMatcher
+from omegaconf import OmegaConf
+from .basemodel import BaseExtractor
+from ..utils import ops
 
-class DELF_baseline():
-    def __init__(self, top_k=2048, device=-1):
+import torch
+class DELF_baseline(BaseExtractor):
+    default_config = {
+        "top_k": 2048,
+    }
+    
+    def __init__(self, conf={}):
+        self.conf = conf = OmegaConf.merge(OmegaConf.create(self.default_config), conf)
+        
         self.model = hub.load('https://tfhub.dev/google/delf/1').signatures['default']
-        self.top_k = top_k
+        self.top_k = conf.top_k
+        
+        self.matcher = NearestNeighborMatcher()
 
     def compute(self, img, cv_kps):
         raise NotImplemented
@@ -32,10 +40,7 @@ class DELF_baseline():
 
     def detectAndCompute(self, img, op=None):
         # make sure image is rgb
-        if len(img.shape) == 2:
-            img = cv2.cvtColor(img, cv2.COLOR_GRAY2RGB)
-        else:
-            img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+        img = ops.to_cv(ops.prepareImage(img))
         
         results = self.run_delf(img)
 
@@ -43,36 +48,44 @@ class DELF_baseline():
         descriptors = results['descriptors'].numpy()
         scales = results['scales'].numpy()
 
-        cv2_kps = [cv2.KeyPoint(x=loc[1], y=loc[0], size=scale, angle=0) for (loc, scale) in zip(locations, scales)]
+        localtions = torch.tensor(locations)
+        scales = torch.tensor(scales)
+        descriptors = torch.tensor(descriptors)
 
-        return cv2_kps, descriptors
+        return localtions, descriptors
 
-if __name__ == "__main__":
-    img1 = cv2.imread(str(root / "assets" / "notredame.png"))
-    img2 = cv2.imread(str(root / "assets" / "notredame2.jpeg"))
-    # img1 = cv2.resize(img1, (0,0), fx=0.5, fy=0.5)
-    # img2 = cv2.resize(img2, (0,0), fx=0.5, fy=0.5)
+    def detect(self, img):
+        return self.detectAndCompute(img)[0]
 
-    sift = cv2.SIFT_create()
+    def compute(self, image, keypoints):
+        raise NotImplemented
+    
+    def to(self, device):
+        self.model.to(device)
+        self.DEV = device
 
-    model = DELF_baseline(device=0)
-
-    kps1, desc1 = model.detectAndCompute(img1)
-    kps2, desc2 = model.detectAndCompute(img2)
-
-    bf = cv2.BFMatcher(cv2.NORM_L2, crossCheck=True)
-
-    matches = bf.match(desc1, desc2)
-
-    # ransac
-    src_pts = np.float32([ kps1[m.queryIdx].pt for m in matches ]).reshape(-1,1,2)
-    dst_pts = np.float32([ kps2[m.trainIdx].pt for m in matches ]).reshape(-1,1,2)
-
-    M, mask = cv2.findHomography(src_pts, dst_pts, cv2.RANSAC, 5.0)
-
-    matches = [m for m,msk in zip(matches, mask) if msk == 1]
-
-    img3 = cv2.drawMatches(img1, kps1, img2, kps2, matches, None, flags=2)
-
-    cv2.imwrite("delf.png", img3)
-
+    def match(self, image1, image2):
+        kp0, desc0 = self.detectAndCompute(image1)
+        kp1, desc1 = self.detectAndCompute(image2)
+        
+        data = {
+            "descriptors0": desc0.unsqueeze(0),
+            "descriptors1": desc1.unsqueeze(0),
+        }
+        
+        response = self.matcher(data)
+        
+        m0 = response['matches0'][0]
+        valid = m0 > -1
+        
+        mkpts0 = kp0[valid]
+        mkpts1 = kp1[m0[valid]]
+        
+        return {
+            'mkpts0': mkpts0,
+            'mkpts1': mkpts1,
+        }
+        
+    @property
+    def has_detector(self):
+        return True

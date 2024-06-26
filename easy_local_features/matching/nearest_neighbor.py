@@ -45,6 +45,7 @@ class NearestNeighborMatcher(torch.nn.Module):
         "distance_thresh": None,
         "mutual_check": True,
         "loss": None,
+        "normalize": True,
     }
     required_data_keys = ["descriptors0", "descriptors1"]
 
@@ -53,6 +54,10 @@ class NearestNeighborMatcher(torch.nn.Module):
         self.conf = conf = OmegaConf.merge(OmegaConf.create(self.default_conf), conf)
 
     def forward(self, data):
+        if self.conf.normalize:
+            data["descriptors0"] = F.normalize(data["descriptors0"], p=2, dim=-1)
+            data["descriptors1"] = F.normalize(data["descriptors1"], p=2, dim=-1)
+        
         sim = torch.einsum("bnd,bmd->bnm", data["descriptors0"], data["descriptors1"])
         matches0 = find_nn(sim, self.conf.ratio_thresh, self.conf.distance_thresh)
         matches1 = find_nn(

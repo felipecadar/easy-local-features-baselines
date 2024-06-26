@@ -67,27 +67,19 @@ cv2.waitKey(0)
 
 
 ```
-# TODO
+# TODO REFACTOR
 
-- [x] Add a setup.py to make it a pip package
-- [ ] Make a general maching class
-  - The idea is to have a class that can match images using any local feature extractor and any matching method.
-- [ ] Fix requirements to install automatically with the package (maybe)
-- [ ] Add a script to download some datasets
-- [ ] Add more baselines :)
+  - [x] ALIKE
+  - [x] ALIKED
   - [x] DEAL
   - [x] DALF
+  - [x] DISK
+  - [x] DeDoDe
+  - [x] D2Net
+  - [ ] SuperPoint
   - [ ] DKM
   - [ ] ASLFeat
-  - [x] R2D2
-  - [x] DISK
-  - [x] SuperPoint
-  - [x] SuperGlue
-  - [x] LightGlue
-  - [x] LoFTR
-  - [x] ALIKE
-  - [ ] ALIKED
-    - [x] Add LICENSE file
-    - [x] Test on MAC M1 with CPU
-    - [ ] Test on Linux with CPU
-    - [ ] Test with CUDA
+  - [ ] R2D2
+  - [ ] SuperGlue
+  - [ ] LightGlue
+  - [ ] LoFTR

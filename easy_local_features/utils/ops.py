@@ -25,8 +25,8 @@ def prepareImage(image, gray=False, batch=True, imagenet=False):
     if len(image.shape) == 4 and image.shape[1] not in [1, 3]:
         image = image.permute(0, 3, 1, 2)
         
-    if gray and image.shape[1] == 3:
-        image = image.mean(1, keepdimage=True)
+    if gray and image.shape[-3] == 3:
+        image = image.mean(-3, keepdimage=True)
         
     if imagenet:
         image = torchvision.transforms.Normalize(
@@ -36,6 +36,9 @@ def prepareImage(image, gray=False, batch=True, imagenet=False):
         
     if batch and len(image.shape) == 3:
         image = image.unsqueeze(0)
+        
+    if not batch and len(image.shape) == 4:
+        image = image[0]
         
     return image
 
