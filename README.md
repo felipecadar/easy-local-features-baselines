@@ -67,7 +67,7 @@ matches = extractor.match(image0, image1)
 # Visualize
 vis.plot_pair(image0, image1)
 vis.plot_matches(matches['mkpts0'], matches['mkpts1'])
-vis.show(f"test/results/{subclass.__name__}.png")
+vis.show(f"test/results/{extractor.__name__}.png")
 
 ```
 
