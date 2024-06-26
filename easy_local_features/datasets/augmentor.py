@@ -41,7 +41,7 @@ def generateRandomTPS(shape, grid = (8, 6), GLOBAL_MULTIPLIER = 0.3, prob = 0.5)
     h, w = shape
     sh, sw = h/grid[0], w/grid[1]
     src = torch.dstack(torch.meshgrid(torch.arange(0, h + sh , sh),
-                         torch.arange(0, w + sw , sw)))
+                         torch.arange(0, w + sw , sw), indexing="ij"))
 
     offsets = torch.rand(grid[0]+1, grid[1]+1, 2) - 0.5
     offsets *= torch.tensor([ sh/2, sw/2 ]).view(1, 1, 2)  * min(0.97, 3. * GLOBAL_MULTIPLIER)

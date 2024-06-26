@@ -9,13 +9,32 @@ import cv2, os, wget
 import scipy
 
 from easy_local_features.submodules.git_d2net.models import D2Net, preprocess_image, process_multiscale
+from ..utils import ops
+from .basemodel import BaseExtractor
+from ..utils.download import downloadModel
+from ..matching.nearest_neighbor import NearestNeighborMatcher
 
-class D2Net_baseline():
-    def __init__(self, top_kps = 2048, use_relu=True, device=-1):
-        self.CPU   = torch.device('cpu')
-        self.DEV   = torch.device(f'cuda:{device}' if (torch.cuda.is_available() and device >= 0) else 'cpu')
-        self.model = D2Net( use_relu=use_relu,
-                            use_cuda=(torch.cuda.is_available() and device >= 0))
+from omegaconf import OmegaConf
+
+class D2Net_baseline(BaseExtractor):
+    
+    default_conf = {
+        'top_k': 2048,
+        'use_relu': True,
+    }
+    
+    def __init__(self, conf={}):
+        self.conf = conf = OmegaConf.merge(OmegaConf.create(self.default_conf), conf)
+        top_kps = conf.top_k
+        use_relu = conf.use_relu
+        
+        self.DEV   = torch.device('cpu') 
+        self.model = D2Net(use_relu=use_relu)
+        
+        model_file_url = "https://dusmanu.com/files/d2-net/d2_tf_no_phototourism.pth" # https://dsmn.ml/files/d2-net/d2_ots.pth
+        model_path = downloadModel('d2net', 'd2_tf_no_phototourism.pth', model_file_url)
+        self.model.load_state_dict(torch.load(model_path, map_location=self.DEV)['model'])
+        
         self.model.eval()
         self.model.to(self.DEV)
         self.top_kps = top_kps
@@ -25,6 +44,8 @@ class D2Net_baseline():
         self.multiscale = False
         self.use_relu = use_relu
         self.preprocessing = 'torch' # 'caffe' or 'torch'
+        
+        self.matcher = NearestNeighborMatcher()
 
     def compute(self, img, cv_kps):
         raise NotImplemented
@@ -33,6 +54,9 @@ class D2Net_baseline():
         raise NotImplemented
 
     def detectAndCompute(self, image, op=None):
+        image = ops.prepareImage(image)
+        image = ops.to_cv(image)
+        
         if len(image.shape) == 2:
             image = image[:, :, np.newaxis]
             image = np.repeat(image, 3, -1)
@@ -82,44 +106,50 @@ class D2Net_baseline():
         keypoints[:, 1] *= fact_j
         # i, j -> u, v
         keypoints = keypoints[:, [1, 0, 2]]
-
-        keypoints = [cv2.KeyPoint(kp[0], kp[1], kp[2]) for kp in keypoints]
+        keypoints, scales = keypoints[:, :2], keypoints[:, 2]
 
         argsort = np.argsort(-scores)
 
-        keypoints = [keypoints[idx] for idx in argsort[:self.top_kps]]
+        keypoints = keypoints[argsort[:self.top_kps]]
         scores = scores[argsort[:self.top_kps]]
         descriptors = descriptors[argsort[:self.top_kps]]
+        scales = scales[argsort[:self.top_kps]]
 
+        return keypoints, descriptors
 
-        return keypoints, descriptors        
+    def detect(self, img):
+        keypoints, descriptors = self.detectAndCompute(img)
+        return keypoints
 
+    def compute(self, img, keypoints):
+        raise NotImplemented
+    
+    def match(self, image1, image2):
+        kp0, desc0 = self.detectAndCompute(image1)
+        kp1, desc1 = self.detectAndCompute(image2)
+        
+        data = {
+            "descriptors0": desc0.unsqueeze(0),
+            "descriptors1": desc1.unsqueeze(0),
+        }
+        
+        response = self.matcher(data)
+        
+        m0 = response['matches0'][0]
+        valid = m0 > -1
+        
+        mkpts0 = kp0[valid]
+        mkpts1 = kp1[m0[valid]]
+        
+        return {
+            'mkpts0': mkpts0,
+            'mkpts1': mkpts1,
+        }
 
-
-if __name__ == "__main__":
-    img1 = cv2.imread(str(root / "assets" / "notredame.png"))
-    img2 = cv2.imread(str(root / "assets" / "notredame2.jpeg"))
-    # img1 = cv2.resize(img1, (0,0), fx=0.5, fy=0.5)
-    # img2 = cv2.resize(img2, (0,0), fx=0.5, fy=0.5)
-
-    model = D2Net_baseline(2048, device=0)
-
-    kps1, desc1 = model.detectAndCompute(img1)
-    kps2, desc2 = model.detectAndCompute(img2)
-
-    bf = cv2.BFMatcher(cv2.NORM_L2, crossCheck=True)
-
-    matches = bf.match(desc1, desc2)
-
-    # ransac
-    src_pts = np.float32([ kps1[m.queryIdx].pt for m in matches ]).reshape(-1,1,2)
-    dst_pts = np.float32([ kps2[m.trainIdx].pt for m in matches ]).reshape(-1,1,2)
-
-    M, mask = cv2.findHomography(src_pts, dst_pts, cv2.RANSAC, 5.0)
-
-    matches = [m for m,msk in zip(matches, mask) if msk == 1]
-
-    img3 = cv2.drawMatches(img1, kps1, img2, kps2, matches, None, flags=2)
-
-    cv2.imwrite("d2net.png", img3)
-
+    def to(self, device):
+        self.model.to(device)
+        self.DEV = device
+    
+    @property
+    def has_detector(self):
+        return True

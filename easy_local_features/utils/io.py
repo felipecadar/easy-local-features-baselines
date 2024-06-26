@@ -1,6 +1,29 @@
 import numpy as np
+import torch
+import torchvision
 import cv2
 import functools
+
+def fromPath(path, gray=False, batch=True, imagenet=False):
+    if path.endswith(".ppm"):
+        import cv2
+        im = cv2.imread(path)
+        im = cv2.cvtColor(im, cv2.COLOR_BGR2RGB)
+        im = torch.from_numpy(im).float() / 255.0
+        im = im.permute(2, 0, 1)
+    else:
+        im = torchvision.io.read_image(path).float() / 255.0
+
+    if imagenet:
+        im = torchvision.transforms.Normalize(
+            mean=[0.485, 0.456, 0.406],
+            std=[0.229, 0.224, 0.225]
+        )(im)
+    if gray:
+        im = im.mean(0, keepdim=True)
+    if batch:
+        im = im.unsqueeze(0)
+    return im
 
 def writeKeypoints(keypoints, filename):
     """
@@ -43,5 +66,3 @@ def readDescriptors(filename):
     
     npzfile = np.load(filename)
     return npzfile['descriptors']
-
-

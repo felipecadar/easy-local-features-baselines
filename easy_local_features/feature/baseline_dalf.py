@@ -15,25 +15,77 @@
 
 import torch
 from torch import nn
-from torch import optim
 import torch.nn.functional as F
-import math
-import pdb, tqdm
 import numpy as np
 import cv2
-
 import time
 import os
-import wget
 
-import torchvision.transforms as transforms
-
-from thinplate import pytorch as TPS
 #from modules import utils
 import pyrootutils
 root = pyrootutils.find_root()
 
-class DALF_baseline:
+from ..matching.nearest_neighbor import NearestNeighborMatcher
+from omegaconf import OmegaConf
+from .basemodel import BaseExtractor
+from ..utils.download import downloadModel
+from ..utils import ops
+
+def tps(theta, ctrl, grid):
+    # Copyright 2018 Christoph Heindl.
+    #
+    # Licensed under MIT License
+    # https://github.com/cheind/py-thin-plate-spline/blob/master/thinplate/pytorch.py
+    # ============================================================
+    '''Evaluate the thin-plate-spline (TPS) surface at xy locations arranged in a grid.
+    The TPS surface is a minimum bend interpolation surface defined by a set of control points.
+    The function value for a x,y location is given by
+    
+        TPS(x,y) := theta[-3] + theta[-2]*x + theta[-1]*y + \sum_t=0,T theta[t] U(x,y,ctrl[t])
+        
+    This method computes the TPS value for multiple batches over multiple grid locations for 2 
+    surfaces in one go.
+    
+    Params
+    ------
+    theta: Nx(T+3)x2 tensor, or Nx(T+2)x2 tensor
+        Batch size N, T+3 or T+2 (reduced form) model parameters for T control points in dx and dy.
+    ctrl: NxTx2 tensor or Tx2 tensor
+        T control points in normalized image coordinates [0..1]
+    grid: NxHxWx3 tensor
+        Grid locations to evaluate with homogeneous 1 in first coordinate.
+        
+    Returns
+    -------
+    z: NxHxWx2 tensor
+        Function values at each grid location in dx and dy.
+    '''
+    
+    N, H, W, _ = grid.size()
+
+    if ctrl.dim() == 2:
+        ctrl = ctrl.expand(N, *ctrl.size())
+    
+    T = ctrl.shape[1]
+    
+    diff = grid[...,1:].unsqueeze(-2) - ctrl.unsqueeze(1).unsqueeze(1)
+    D = torch.sqrt((diff**2).sum(-1))
+    U = (D**2) * torch.log(D + 1e-6)
+
+    w, a = theta[:, :-3, :], theta[:, -3:, :]
+
+    reduced = T + 2  == theta.shape[1]
+    if reduced:
+        w = torch.cat((-w.sum(dim=1, keepdim=True), w), dim=1) 
+
+    # U is NxHxWxT
+    b = torch.bmm(U.view(N, -1, T), w).view(N,H,W,2)
+    # b is NxHxWx2
+    z = torch.bmm(grid.view(N,-1,3), a).view(N,H,W,2) + b
+    
+    return z
+
+class DALF_baseline(BaseExtractor):
     """
     Class for extracting local features (keypoints and descriptors) using the DALF method.
 
@@ -49,29 +101,22 @@ class DALF_baseline:
     Raises:
         RuntimeError: If the network mode cannot be parsed from the model file name.
     """
+    
+    default_conf = {
+        'fixed_tps': False,
+        'top_k': 2048,
+        'return_map': False,
+        'threshold': 25.,
+        'MS': False,
+    }
 
-    def __init__(self, model=None, 
-                       dev = torch.device('cpu'),
-                       fixed_tps = False):
-        self.dev = dev
+    def __init__(self, conf={}):
+        self.conf = conf = OmegaConf.merge(OmegaConf.create(self.default_conf), conf)
+        fixed_tps = conf.fixed_tps
 
-        print('running DALF on', self.dev)
-
-        if model is None:
-            url = 'https://github.com/verlab/DALF_CVPR_2023/raw/main/weights/model_ts-fl_final.pth'
-            cache_path = os.path.join(os.path.expanduser('~'), '.cache', 'torch', 'hub', 'checkpoints', 'DALF')
-            
-            if not os.path.exists(cache_path):
-                os.makedirs(cache_path, exist_ok=True)
-
-            cache_path = os.path.join(cache_path, 'model_ts-fl_final.pth')
-            if not os.path.exists(cache_path):
-                print('Downloading DALF model...')
-                wget.download(url, cache_path)
-                print('Done.')
-
-            model = cache_path
-
+        self.DEV = torch.device('cpu')
+        url = 'https://github.com/verlab/DALF_CVPR_2023/raw/main/weights/model_ts-fl_final.pth'
+        model = str(downloadModel('dalf', 'model_ts-fl_final', url))
 
         if 'end2end-backbone' in model:
           backbone_nfeats = 128
@@ -88,13 +133,13 @@ class DALF_baseline:
         if mode is None:
           raise RuntimeError('Could not parse network mode from file name - it has to be present')
 
-        self.net = DEAL(enc_channels = [1, 32, 64, backbone_nfeats], fixed_tps = fixed_tps, mode = mode).to(dev)
-        self.net.load_state_dict(torch.load(model, map_location=dev))
-
-        self.net.eval().to(dev)
+        self.net = DEAL(enc_channels = [1, 32, 64, backbone_nfeats], fixed_tps = fixed_tps, mode = mode).to(self.DEV)
+        self.net.load_state_dict(torch.load(model, map_location=self.DEV))
+        self.net.eval().to(self.DEV)
+        
+        self.matcher = NearestNeighborMatcher()
     
-
-    def detectAndCompute(self, og_img, mask = None, top_k = 2048, return_map = False, threshold = 25., MS = False):
+    def detectAndCompute(self, og_img):
         """
         Detects and computes deformation-aware local features (keypoints and descriptors) from an input image.
 
@@ -117,6 +162,11 @@ class DALF_baseline:
             RuntimeError: If the input image cannot be loaded.
 
         """
+        
+        top_k = self.conf.top_k
+        return_map = self.conf.return_map
+        threshold = self.conf.threshold
+        MS = self.conf.MS
 
         t0 = time.time()
         if MS:
@@ -127,15 +177,17 @@ class DALF_baseline:
         kpts_list, descs_list, scores_list = [], [], []
         hd_map = None
 
-        if isinstance(og_img, str):
-            og_img = cv2.cvtColor(cv2.imread(og_img), cv2.COLOR_BGR2RGB)
-            if og_img is None:
-                raise RuntimeError('Image couldnt be loaded')
+        # if isinstance(og_img, str):
+        #     og_img = cv2.cvtColor(cv2.imread(og_img), cv2.COLOR_BGR2RGB)
+        #     if og_img is None:
+        #         raise RuntimeError('Image couldnt be loaded')
+        
+        og_img = ops.to_cv(ops.prepareImage(og_img))
 
         for scale in scales:
           with torch.no_grad():
               img = cv2.resize(og_img, None, fx = scale, fy = scale, interpolation = cv2.INTER_AREA) if scale != 1. else og_img
-              img = torch.tensor(img, dtype = torch.float32, device=self.dev).permute(2,0,1).unsqueeze(0)/255.
+              img = torch.tensor(img, dtype = torch.float32, device=self.DEV).permute(2,0,1).unsqueeze(0)/255.
 
               kpts, descs, fmap = self.net(img, NMS = True, threshold = threshold, return_tensors = True, top_k = top_k)
               score_map = fmap['map'][0].squeeze(0).cpu().numpy()
@@ -184,17 +236,53 @@ class DALF_baseline:
         else:
           all_kpts = kpts_list[0]; all_descs = descs_list[0]; all_scores = scores_list[0]
 
-        cv_kps = [cv2.KeyPoint(all_kpts[i][0], all_kpts[i][1], 6, 0, all_scores[i]) for i in range(len(all_kpts))]
-        # print('took %.3f s'%(time.time() - t0))
+        keypoints = torch.tensor(all_kpts, dtype = torch.float32, device=self.DEV)
+        all_descs = torch.tensor(all_descs, dtype = torch.float32, device=self.DEV)
+        
         if return_map:
-          return cv_kps, all_descs, hd_map
+          hd_map = torch.tensor(hd_map, dtype = torch.float32, device=self.DEV)
+          return keypoints, all_descs, hd_map
         else:
-          return cv_kps, all_descs
+          return keypoints, all_descs
 
     def detect(self, img, _ = None):
         return self.detectAndCompute(img)[0]
 
+    def detect(self, img):
+        return self.detectAndCompute(img)[0]
 
+    def compute(self, image, keypoints):
+        raise NotImplemented
+    
+    def to(self, device):
+        self.model.to(device)
+        self.DEV = device
+
+    def match(self, image1, image2):
+        kp0, desc0 = self.detectAndCompute(image1)
+        kp1, desc1 = self.detectAndCompute(image2)
+        
+        data = {
+            "descriptors0": desc0.unsqueeze(0),
+            "descriptors1": desc1.unsqueeze(0),
+        }
+        
+        response = self.matcher(data)
+        
+        m0 = response['matches0'][0]
+        valid = m0 > -1
+        
+        mkpts0 = kp0[valid]
+        mkpts1 = kp1[m0[valid]]
+        
+        return {
+            'mkpts0': mkpts0,
+            'mkpts1': mkpts1,
+        }
+        
+    @property
+    def has_detector(self):
+        return True
 
 class InterpolateSparse2d(nn.Module):
   '''
@@ -367,7 +455,6 @@ class DEAL(nn.Module):
    
     hn_out_ch = 128 if mode == 'end2end-tps' else 64 
 
-    print('backbone: %d hardnet: %d'%(enc_channels[-1], hn_out_ch))
     self.tps_net = ThinPlateNet(in_channels = enc_channels[-1], nchannels = enc_channels[0],
                                  fixed_tps = fixed_tps)
     self.hardnet =  HardNet(nchannels = enc_channels[0], out_ch = hn_out_ch)
@@ -376,7 +463,6 @@ class DEAL(nn.Module):
     self.enc_channels = enc_channels
     self.mode = mode
     if self.mode == 'ts-fl':
-      print('adding fusion layer...')
       self.fusion_layer = nn.Sequential(nn.Linear(128, 128), nn.ReLU(),
                                         nn.Linear(128, 128), nn.Sigmoid())
 
@@ -394,7 +480,7 @@ class DEAL(nn.Module):
 
     #build a size x size grid around each keypoint to compute a local patch score for each keypoint
     g = torch.arange(size) - size//2
-    gy, gx = torch.meshgrid(g, g)
+    gy, gx = torch.meshgrid(g, g, indexing="ij")
     center_grid = torch.cat([gx.unsqueeze(-1), gy.unsqueeze(-1)], -1).to(xy.device)
     grids = center_grid.unsqueeze(0).repeat(xy.shape[0], 1, 1, 1) 
     grids = (grids + xy.view(-1, 1, 1, 2)) / torch.tensor([W-1, H-1]).to(xy.device)
@@ -656,7 +742,7 @@ class ThinPlateNet(nn.Module):
         I_polargrid[..., 1:] = polargrid
 
         if not self.fixed_tps:
-          z = TPS.tps(theta, ctrl, I_polargrid)
+          z = tps(theta, ctrl, I_polargrid)
           tps_warper = (I_polargrid[...,1:] + z) # *2-1
           #tps_warper = polargrid + theta
         else:
@@ -844,8 +930,6 @@ class Decoder(nn.Module):
     def __init__(self, enc_ch, dec_ch):
         super().__init__()
         enc_ch = enc_ch[::-1]
-        print(enc_ch)
-        print(dec_ch)
         self.convs = nn.ModuleList( [UpBlock(enc_ch[i+1] + dec_ch[i], dec_ch[i+1]) 
                                                       for i in range(len(dec_ch) -2)] )
         self.conv_heatmap = nn.Sequential( 

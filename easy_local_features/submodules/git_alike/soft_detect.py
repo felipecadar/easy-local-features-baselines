@@ -85,7 +85,7 @@ class DKD(nn.Module):
         # local xy grid
         x = torch.linspace(-self.radius, self.radius, self.kernel_size)
         # (kernel_size*kernel_size) x 2 : (w,h)
-        self.hw_grid = torch.stack(torch.meshgrid([x, x])).view(2, -1).t()[:, [1, 0]]
+        self.hw_grid = torch.stack(torch.meshgrid([x, x], indexing="ij")).view(2, -1).t()[:, [1, 0]]
 
     def detect_keypoints(self, scores_map, sub_pixel=True):
         b, c, h, w = scores_map.shape

@@ -88,26 +88,16 @@ class ALike(ALNet):
         else:
             return descriptor_map, scores_map
 
-    def forward(self, img, image_size_max=99999, sort=False, sub_pixel=False):
+    def forward(self, image:torch.Tensor, sort=False, sub_pixel=False):
         """
-        :param img: np.array HxWx3, RGB
+        :param img: [0,1] torch image tensor, BxCxHxW
         :param image_size_max: maximum image size, otherwise, the image will be resized
         :param sort: sort keypoints by scores
         :param sub_pixel: whether to use sub-pixel accuracy
         :return: a dictionary with 'keypoints', 'descriptors', 'scores', and 'time'
         """
-        H, W, three = img.shape
-        assert three == 3, "input image shape should be [HxWx3]"
-
-        # ==================== image size constraint
-        image = deepcopy(img)
-        max_hw = max(H, W)
-        if max_hw > image_size_max:
-            ratio = float(image_size_max / max_hw)
-            image = cv2.resize(image, dsize=None, fx=ratio, fy=ratio)
-
-        # ==================== convert image to tensor
-        image = torch.from_numpy(image).to(self.device).to(torch.float32).permute(2, 0, 1)[None] / 255.0
+        # H, W, three = image.shape
+        H, W = image.shape[-2:]
 
         # ==================== extract keypoints
         start = time.time()
@@ -127,10 +117,10 @@ class ALike(ALNet):
 
         end = time.time()
 
-        return {'keypoints': keypoints.cpu().numpy(),
-                'descriptors': descriptors.cpu().numpy(),
-                'scores': scores.cpu().numpy(),
-                'scores_map': scores_map.cpu().numpy(),
+        return {'keypoints': keypoints,
+                'descriptors': descriptors,
+                'scores': scores,
+                'scores_map': scores_map,
                 'time': end - start, }
 
 

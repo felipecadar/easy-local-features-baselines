@@ -290,11 +290,11 @@ def process_multiscale(image, model, scales=[.5, 1, 2]):
         del dense_features
     del previous_dense_features, banned
 
-    keypoints = all_keypoints.t().numpy()
+    keypoints = all_keypoints.t()
     del all_keypoints
-    scores = all_scores.numpy()
+    scores = all_scores
     del all_scores
-    descriptors = all_descriptors.t().numpy()
+    descriptors = all_descriptors.t()
     del all_descriptors
     return keypoints, scores, descriptors
 
@@ -319,7 +319,7 @@ def preprocess_image(image, preprocessing=None):
     return image
 
 class DenseFeatureExtractionModule(nn.Module):
-    def __init__(self, use_relu=True, use_cuda=True):
+    def __init__(self, use_relu=True):
         super(DenseFeatureExtractionModule, self).__init__()
 
         self.model = nn.Sequential(
@@ -350,9 +350,6 @@ class DenseFeatureExtractionModule(nn.Module):
 
         self.use_relu = use_relu
 
-        if use_cuda:
-            self.model = self.model.cuda()
-
     def forward(self, batch):
         output = self.model(batch)
         if self.use_relu:
@@ -361,25 +358,17 @@ class DenseFeatureExtractionModule(nn.Module):
 
 
 class D2Net(nn.Module):
-    def __init__(self, model_file=None, use_relu=True, use_cuda=True):
+    def __init__(self, use_relu=True):
         super(D2Net, self).__init__()
 
         self.dense_feature_extraction = DenseFeatureExtractionModule(
-            use_relu=use_relu, use_cuda=use_cuda
+            use_relu=use_relu
         )
 
         self.detection = HardDetectionModule()
 
         self.localization = HandcraftedLocalizationModule()
 
-        # if model_file is not None:
-        #     if use_cuda:
-        #         self.load_state_dict(torch.load(model_file)['model'])
-        #     else:
-        #         self.load_state_dict(torch.load(model_file, map_location='cpu')['model'])
-
-        model_file_url = "https://dsmn.ml/files/d2-net/d2_tf.pth" # https://dsmn.ml/files/d2-net/d2_ots.pth
-        self.load_state_dict(torch.hub.load_state_dict_from_url(model_file_url, progress=True)['model'])
 
     def forward(self, batch):
         _, _, h, w = batch.size()

@@ -46,7 +46,6 @@ class ALIKED(nn.Module):
     def __init__(
             self,
             model_name: str = 'aliked-n32',
-            device: str = 'cuda',
             top_k: int = -1, # -1 for threshold based mode, >0 for top K mode.
             scores_th: float = 0.2,
             n_limit: int = 5000, # Maximum number of keypoints to be detected
@@ -60,7 +59,6 @@ class ALIKED(nn.Module):
         conv_types = ['conv','conv','dcn','dcn']
         conv2D = False
         mask = False
-        self.device = device
         
         # build model
         self.pool2 = nn.AvgPool2d(kernel_size=2, stride=2)
@@ -99,10 +97,8 @@ class ALIKED(nn.Module):
         if load_pretrained:
             pretrained_path = osp.abspath(pretrained_path)
             if osp.exists(pretrained_path):
-                print(f'loading {pretrained_path}')
                 state_dict = torch.load(pretrained_path, 'cpu')
                 self.load_state_dict(state_dict, strict=True)
-                self.to(device)
                 self.eval()
             else:
                 raise FileNotFoundError(f'cannot find pretrained model: {pretrained_path}')        
@@ -159,11 +155,7 @@ class ALIKED(nn.Module):
             'time': t1-t0,
         }
     
-    def run(self, img_rgb):
-        img_tensor = ToTensor()(img_rgb)
-        img_tensor = img_tensor.to(self.device).unsqueeze_(0)
-        
-        
+    def run(self, img_tensor):
         with torch.no_grad():
             pred = self.forward(img_tensor)
             
@@ -171,9 +163,9 @@ class ALIKED(nn.Module):
         _, _, h, w = img_tensor.shape
         wh = torch.tensor([w - 1, h - 1],device=kpts.device)
         kpts = wh*(kpts+1)/2
-        return {'keypoints': kpts.cpu().numpy(),  # N 2
-            'descriptors': pred['descriptors'][0].cpu().numpy(),  # N D
-            'scores': pred['scores'][0].cpu().numpy(),  # B N D
-            'score_map': pred['score_map'][0,0].cpu().numpy(),  # Bx1xHxW
+        return {'keypoints': kpts,  # N 2
+            'descriptors': pred['descriptors'][0],  # N D
+            'scores': pred['scores'][0],  # B N D
+            'score_map': pred['score_map'][0,0],  # Bx1xHxW
             'time': pred['time'],
         }

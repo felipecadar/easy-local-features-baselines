@@ -59,7 +59,7 @@ class FullSampler(nn.Module):
         
         Y = torch.arange(H, device=aflow.device)
         X = torch.arange(W, device=aflow.device)
-        XY = torch.stack(torch.meshgrid(Y,X)[::-1], dim=0)
+        XY = torch.stack(torch.meshgrid(Y,X, indexing="ij")[::-1], dim=0)
         XY = XY[None].expand(B, 2, H, W).float()
         
         grid = self._aflow_to_grid(aflow)
