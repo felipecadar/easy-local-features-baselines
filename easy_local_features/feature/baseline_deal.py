@@ -30,7 +30,7 @@ class DEAL_baseline(BaseExtractor):
         
         self.matcher = NearestNeighborMatcher()
 
-    def detectAndCompute(self, img):
+    def detectAndCompute(self, img, return_dict=False):
         gray = ops.to_cv(ops.prepareImage(img), to_gray=True)
 
         with torch.no_grad():
@@ -39,6 +39,12 @@ class DEAL_baseline(BaseExtractor):
 
         kps = torch.tensor([kp.pt for kp in kps]).to(self.DEV)
         desc = torch.from_numpy(desc).to(self.DEV)
+        
+        if return_dict:
+            return {
+                'keypoints': kps,
+                'descriptors': desc
+            }
 
         return kps, desc
 

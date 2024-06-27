@@ -138,7 +138,7 @@ class DISK_baseline(BaseExtractor):
 
         return image
 
-    def detectAndCompute(self, img):
+    def detectAndCompute(self, img, return_dict=False):
         image = self._toImage(img)
         with torch.no_grad():
             try:
@@ -166,6 +166,13 @@ class DISK_baseline(BaseExtractor):
         keypoints   = keypoints[order]
         descriptors = descriptors[order]
         scores      = scores[order]
+        
+        if return_dict:
+            return {
+                'keypoints': keypoints,
+                'descriptors': descriptors,
+                'scores': scores
+            }
 
         return keypoints, descriptors
     

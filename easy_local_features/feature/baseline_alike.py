@@ -81,14 +81,21 @@ class ALIKE_baseline(BaseExtractor):
         self.sub_pixel = sub_pixel
         self.matcher = NearestNeighborMatcher()
 
-    def detectAndCompute(self, image):   
+    def detectAndCompute(self, image, return_dict=False):   
         image = ops.prepareImage(image)
         image = image.to(self.DEV)
         pred = self.model(image, sub_pixel=self.sub_pixel)
         keypoints = pred['keypoints'] # (N, 2)
         descriptors = pred['descriptors'] # (N, 64)
-        # scores = pred['scores'] # (N,)
+        scores = pred['scores'] # (N,)
         
+        if return_dict:
+            return {
+                'keypoints': keypoints,
+                'descriptors': descriptors,
+                'scores': scores
+            }
+
         return keypoints, descriptors
 
     def detect(self, img):
@@ -96,7 +103,7 @@ class ALIKE_baseline(BaseExtractor):
 
     def compute(self, image, keypoints):
         raise NotImplemented
-    
+
     def to(self, device):
         self.model.to(device)
         self.DEV = device

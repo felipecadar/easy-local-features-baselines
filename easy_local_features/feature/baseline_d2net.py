@@ -53,7 +53,7 @@ class D2Net_baseline(BaseExtractor):
     def detect(self, img, op=None):
         raise NotImplemented
 
-    def detectAndCompute(self, image, op=None):
+    def detectAndCompute(self, image, return_dict=False):
         image = ops.prepareImage(image)
         image = ops.to_cv(image)
         
@@ -114,6 +114,14 @@ class D2Net_baseline(BaseExtractor):
         scores = scores[argsort[:self.top_kps]]
         descriptors = descriptors[argsort[:self.top_kps]]
         scales = scales[argsort[:self.top_kps]]
+        
+        if return_dict:
+            return {
+                'keypoints': keypoints,
+                'descriptors': descriptors,
+                'scores': scores,
+                'scales': scales
+            }
 
         return keypoints, descriptors
 

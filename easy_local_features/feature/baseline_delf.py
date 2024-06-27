@@ -20,7 +20,7 @@ class DELF_baseline(BaseExtractor):
         
         self.model = hub.load('https://tfhub.dev/google/delf/1').signatures['default']
         self.top_k = conf.top_k
-        
+        self.DEV = torch.device('cpu')
         self.matcher = NearestNeighborMatcher()
 
     def compute(self, img, cv_kps):
@@ -38,7 +38,7 @@ class DELF_baseline(BaseExtractor):
             image_scales=tf.constant([0.25, 0.3536, 0.5, 0.7071, 1.0, 1.4142, 2.0]),
             max_feature_num=tf.constant(self.top_k))
 
-    def detectAndCompute(self, img, op=None):
+    def detectAndCompute(self, img, return_dict=False):
         # make sure image is rgb
         img = ops.to_cv(ops.prepareImage(img))
         
@@ -48,9 +48,16 @@ class DELF_baseline(BaseExtractor):
         descriptors = results['descriptors'].numpy()
         scales = results['scales'].numpy()
 
-        localtions = torch.tensor(locations)
-        scales = torch.tensor(scales)
-        descriptors = torch.tensor(descriptors)
+        localtions = torch.tensor(locations).to(self.DEV)
+        scales = torch.tensor(scales).to(self.DEV)
+        descriptors = torch.tensor(descriptors).to(self.DEV)
+        
+        if return_dict:
+            return {
+                'keypoints': localtions,
+                'descriptors': descriptors,
+                'scales': scales
+            }
 
         return localtions, descriptors
 
@@ -61,7 +68,7 @@ class DELF_baseline(BaseExtractor):
         raise NotImplemented
     
     def to(self, device):
-        self.model.to(device)
+        # self.model.to(device)
         self.DEV = device
 
     def match(self, image1, image2):

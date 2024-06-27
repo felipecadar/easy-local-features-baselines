@@ -2,6 +2,7 @@ import torch
 import torchvision
 import numpy as np
 import cv2
+from torch.nn import functional as F
 
 from .io import fromPath
 
@@ -26,7 +27,7 @@ def prepareImage(image, gray=False, batch=True, imagenet=False):
         image = image.permute(0, 3, 1, 2)
         
     if gray and image.shape[-3] == 3:
-        image = image.mean(-3, keepdimage=True)
+        image = image.mean(-3, keepdim=True)
         
     if imagenet:
         image = torchvision.transforms.Normalize(
@@ -43,16 +44,17 @@ def prepareImage(image, gray=False, batch=True, imagenet=False):
     return image
 
 
-def to_cv(torch_image, convert_color=True, batch_idx=0, to_gray=False):
+def to_cv(torch_image, convert_color=False, batch_idx=0, to_gray=False):
     '''Converts a torch tensor image to a numpy array'''
+    
     if isinstance(torch_image, torch.Tensor):
         if len(torch_image.shape) == 2:
             torch_image = torch_image.unsqueeze(0)
-        if len(torch_image.shape) == 4 and torch_image.shape[0] == 1:
+        elif len(torch_image.shape) == 4 and torch_image.shape[0] == 1:
             torch_image = torch_image[0]
-        if len(torch_image.shape) == 4 and torch_image.shape[0] > 1:
+        elif len(torch_image.shape) == 4 and torch_image.shape[0] > 1:
             torch_image = torch_image[batch_idx]
-        if len(torch_image.shape) == 3 and torch_image.shape[0] > 1:
+        elif len(torch_image.shape) == 3 and torch_image.shape[0] > 1:
             torch_image = torch_image[batch_idx].unsqueeze(0)
             
         if torch_image.max() > 1:
@@ -67,7 +69,7 @@ def to_cv(torch_image, convert_color=True, batch_idx=0, to_gray=False):
         
     if to_gray:
         img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-
+        
     return img
 
 def resize_short_edge(image, min_size):
@@ -112,3 +114,57 @@ def crop_square(image):
         crop = w - h
         image = image[..., :-crop]
     return image
+
+def crop_patches(image, keypoints, patch_size = 32, mode='nearest'):
+    B, C, H, W = image.shape
+    N = keypoints.shape[1]
+
+    # Ensure the keypoints are in the correct range
+    x_coords = keypoints[:, :, 0]
+    y_coords = keypoints[:, :, 1]
+    
+    # Calculate the left and top edges of the patches
+    left = x_coords - patch_size / 2
+    top = y_coords - patch_size / 2
+
+    # Normalize to [-1, 1] for grid_sample
+    left_norm = 2 * left / (W - 1) - 1
+    top_norm = 2 * top / (H - 1) - 1
+
+    # Create the sampling grid
+    # grid_x = torch.linspace(-1, 1, patch_size).to(image.device)
+    # grid_y = torch.linspace(-1, 1, patch_size).to(image.device)
+    # this is not from -1 to 1, bt from the left to the right in normalized coordinates
+    patch_size_normalized_x = patch_size / W
+    patch_size_normalized_y = patch_size / H
+    grid_x = torch.linspace(-patch_size_normalized_x, patch_size_normalized_x, patch_size).to(image.device)
+    grid_y = torch.linspace(-patch_size_normalized_y, patch_size_normalized_y, patch_size).to(image.device)
+    
+    grid_x, grid_y = torch.meshgrid(grid_x, grid_y, indexing='ij')
+    grid = torch.stack((grid_x, grid_y), 2).unsqueeze(0)  # 1xpatch_sizexpatch_sizex2
+
+    grid = grid.repeat(B, N, 1, 1, 1)  # BxNxpatch_sizexpatch_sizex2
+
+    # Adjust the grid according to keypoints
+    grid[:, :, :, :, 0] = (grid[:, :, :, :, 0] + left_norm.unsqueeze(2).unsqueeze(3))
+    grid[:, :, :, :, 1] = (grid[:, :, :, :, 1] + top_norm.unsqueeze(2).unsqueeze(3))
+    
+    # the patch is anchored at the bottom right corner of the keypoint
+    # let's move it to the center of the patch
+    grid[:, :, :, :, 0] += patch_size_normalized_x
+    grid[:, :, :, :, 1] += patch_size_normalized_y
+    
+    # Reshape for grid_sample
+    grid = grid.view(B * N, patch_size, patch_size, 2)
+
+    # Repeat images and apply grid_sample
+    image_repeated = image.unsqueeze(1).repeat(1, N, 1, 1, 1).view(B * N, C, H, W)
+    patches = F.grid_sample(image_repeated, grid, mode=mode, align_corners=True)
+
+    patches = patches.view(B, N, C, patch_size, patch_size)
+    # flip the patches to have the same orientation as the other methods
+    # transpose the last two dimensions
+    patches = patches.transpose(-1, -2)
+    
+    return patches
+

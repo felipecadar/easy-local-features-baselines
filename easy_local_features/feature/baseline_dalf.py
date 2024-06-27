@@ -139,7 +139,7 @@ class DALF_baseline(BaseExtractor):
         
         self.matcher = NearestNeighborMatcher()
     
-    def detectAndCompute(self, og_img):
+    def detectAndCompute(self, og_img, return_dict=False):
         """
         Detects and computes deformation-aware local features (keypoints and descriptors) from an input image.
 
@@ -238,6 +238,14 @@ class DALF_baseline(BaseExtractor):
 
         keypoints = torch.tensor(all_kpts, dtype = torch.float32, device=self.DEV)
         all_descs = torch.tensor(all_descs, dtype = torch.float32, device=self.DEV)
+        
+        if return_dict:
+            return {
+                'keypoints': keypoints,
+                'descriptors': all_descs,
+                'scores': all_scores,
+                'hd_map': hd_map,
+            }
         
         if return_map:
           hd_map = torch.tensor(hd_map, dtype = torch.float32, device=self.DEV)

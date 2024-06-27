@@ -80,10 +80,13 @@ vis.show(f"test/results/{extractor.__name__}.png")
 - [x] DeDoDe
 - [x] D2Net
 - [x] DELF
-- [ ] SuperPoint
+- [x] SuperPoint
+- [x] R2D2
+- [x] LogPolar
+- [x] SOSNet
+- [x] TFeat
 - [ ] DKM
 - [ ] ASLFeat
-- [ ] R2D2
 - [ ] SuperGlue
 - [ ] LightGlue
 - [ ] LoFTR

@@ -69,9 +69,17 @@ class DeDoDe_baseline(BaseExtractor):
         self.matcher = DualSoftMaxMatcher()
         self.top_kps = conf.top_k
 
-    def detectAndCompute(self, image, op=None):
+    def detectAndCompute(self, image, return_dict=False):
         image = ops.prepareImage(image, imagenet=True).to(self.DEV)
         keypoints, scores, descriptors = self.model(image, n=self.top_kps, apply_imagenet_normalization=False)
+
+        if return_dict:
+            return {
+                'keypoints': keypoints,
+                'descriptors': descriptors,
+                'scores': scores
+            }
+       
         return keypoints, descriptors        
 
     def detect(self, img):

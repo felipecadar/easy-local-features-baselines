@@ -3,6 +3,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import torch
 import cv2
+import torchvision
 
 from .ops import to_cv
 
@@ -12,11 +13,33 @@ default_colors = {
     'b': '#3b82f6',
 }
 
-def plot_pair(img0, img1, figsize=(20, 10), fig=None, ax=None, title=None) -> tuple[plt.Figure, list[plt.Axes]]:
+def draw_keypoints(image, keypoints, color='g', size=5):
+    print(keypoints.shape)
+    # draw keypoints on the image
+    imgs = []
+    for B in range(keypoints.shape[0]):
+        kps = keypoints[B].unsqueeze(0)
+        im = image[B]
+        
+        im = torchvision.utils.draw_keypoints(im, kps, radius=size, colors=default_colors[color])
+        
+        imgs.append(im)
+    return torch.stack(imgs)
+        
+
+def plot_pair(img0, img1, figsize=(20, 10), fig=None, ax=None, title=None, vertical=False, gray=True) -> tuple[plt.Figure, list[plt.Axes]]:
     if fig is None:
-        fig, ax = plt.subplots(1, 2, figsize=figsize)
-    ax[0].imshow(to_cv(img0))
-    ax[1].imshow(to_cv(img1))
+        if vertical:
+            fig, ax = plt.subplots(2, 1, figsize=figsize)
+        else:
+            fig, ax = plt.subplots(1, 2, figsize=figsize)
+            
+    if gray:
+        ax[0].imshow(to_cv(img0, to_gray=gray), cmap='gray')
+        ax[1].imshow(to_cv(img1, to_gray=gray), cmap='gray')
+    else:
+        ax[0].imshow(to_cv(img0))
+        ax[1].imshow(to_cv(img1))
     
     # remove border
     for a in ax:

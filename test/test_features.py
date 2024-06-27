@@ -25,7 +25,7 @@ def all_subclasses():
     load_all_modules_from_package(easy_local_features.feature)
     return  get_all_subclasses(BaseExtractor)
 
-def test_feature_extractors(all_subclasses):
+def test_feature_extractors(all_subclasses: list[BaseExtractor]):
     image0 = io.fromPath(str(root / "assets/v_vitro/1.ppm"))
     image1 = io.fromPath(str(root / "assets/v_vitro/2.ppm"))
     
@@ -36,6 +36,11 @@ def test_feature_extractors(all_subclasses):
     
     for subclass in all_subclasses:
         extractor = subclass({'top_k': 128})
+        
+        if not extractor.has_detector:
+            from easy_local_features.feature.baseline_alike import ALIKE_baseline
+            extractor.addDetector(ALIKE_baseline)
+        
         matches = extractor.match(image0, image1)
         
         vis.plot_pair(image0, image1, title=subclass.__name__, figsize=(8, 4))

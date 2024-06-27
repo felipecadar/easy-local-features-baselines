@@ -67,14 +67,21 @@ class ALIKED_baseline(BaseExtractor):
 
         self.matcher = NearestNeighborMatcher()
 
-    def detectAndCompute(self, img):
+    def detectAndCompute(self, img, return_dict=False):
         image = ops.prepareImage(img, batch=True).to(self.DEV)
         with torch.no_grad():
             res = self.model.run(image)
 
         keypoints = res['keypoints']
         descriptors = res['descriptors']
-        # scores = res['scores']
+        scores = res['scores']
+        
+        if return_dict:
+            return {
+                'keypoints': keypoints,
+                'descriptors': descriptors,
+                'scores': scores
+            }
 
         return keypoints, descriptors
 

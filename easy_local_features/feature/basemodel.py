@@ -3,7 +3,7 @@ from omegaconf import OmegaConf
 
 class BaseExtractor(ABC):
     @abstractmethod
-    def detectAndCompute(self, image):
+    def detectAndCompute(self, image, return_dict=False):
         raise NotImplementedError("Every BaseExtractor must implement the detectAndCompute method.")
     
     @abstractmethod
@@ -27,3 +27,28 @@ class BaseExtractor(ABC):
     def has_detector(self):
         raise NotImplementedError("Every BaseExtractor must implement the has_detector property.")
     
+    
+    def __call__(self, data):
+        '''
+        data: dict
+            {
+                'image': image,
+            }
+        '''
+        return self.detectAndCompute(data['image'], return_dict=True)
+    
+    def addDetector(self, detector):
+        detector = detector(self.conf)
+        self.detect = detector.detect
+        
+        def detectAndCompute(image, return_dict=False):
+            keypoints = detector.detect(image)
+            keypoints, descriptors = self.compute(image, keypoints)
+            if return_dict:
+                return {
+                    'keypoints': keypoints,
+                    'descriptors': descriptors
+                }
+            return keypoints, descriptors
+        
+        self.detectAndCompute = detectAndCompute
