@@ -2,6 +2,8 @@
 
 Just some scripts to make things easier for the local features baselines.
 
+<div style="color:red;">WARNING: PLEASE check the license of your desired baseline before using this code.</div>
+
 # Installation
 
 ```bash
@@ -40,13 +42,16 @@ from easy_local_features.feature.baseline_aliked import ALIKED_baseline
 # from easy_local_features.feature.baseline_dedode import DeDoDe_baseline
 # from easy_local_features.feature.baseline_d2net import D2Net_baseline
 # from easy_local_features.feature.baseline_delf import DELF_baseline
-
+# from easy_local_features.feature.baseline_superpoint import SuperPoint_baseline
+# from easy_local_features.feature.baseline_r2d2 import R2D2_baseline
+# from easy_local_features.feature.baseline_sosnet import SOSNet_baseline
+# from easy_local_features.feature.baseline_tfeat import TFeat_baseline
 
 from easy_local_features.utils import vis, io
 
 # Load an image
-image0 = io.fromPath(str(root / "assets/v_vitro/1.ppm"))
-image1 = io.fromPath(str(root / "assets/v_vitro/2.ppm"))
+image0 = io.fromPath("assets/v_vitro/1.ppm")
+image1 = io.fromPath("assets/v_vitro/2.ppm")
 
 # Load the extractor
 extractor = ALIKED_baseline({'top_k': 128})
