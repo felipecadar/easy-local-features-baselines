@@ -21,10 +21,6 @@ import cv2
 import time
 import os
 
-#from modules import utils
-import pyrootutils
-root = pyrootutils.find_root()
-
 from ..matching.nearest_neighbor import NearestNeighborMatcher
 from omegaconf import OmegaConf
 from .basemodel import BaseExtractor

@@ -2,10 +2,6 @@ import torch
 import numpy as np
 import cv2, os
 
-import pyrootutils
-root = pyrootutils.find_root()
-
-
 from ..matching.nearest_neighbor import NearestNeighborMatcher
 from omegaconf import OmegaConf
 from .basemodel import BaseExtractor

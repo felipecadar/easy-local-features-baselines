@@ -1,6 +1,3 @@
-import pyrootutils
-root = pyrootutils.find_root()
-
 import tensorflow as tf
 import tensorflow_hub as hub
 

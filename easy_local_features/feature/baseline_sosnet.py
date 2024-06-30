@@ -1,8 +1,4 @@
-import pyrootutils
-root = pyrootutils.find_root()
-
 import torch
-
 from kornia.feature.sosnet import SOSNet
 from einops import rearrange
 from ..matching.nearest_neighbor import NearestNeighborMatcher

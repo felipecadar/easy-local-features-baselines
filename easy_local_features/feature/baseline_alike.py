@@ -4,8 +4,6 @@ import torch
 import numpy as np
 import cv2
 import wget
-import pyrootutils
-root = pyrootutils.find_root()
 
 
 from ..matching.nearest_neighbor import NearestNeighborMatcher

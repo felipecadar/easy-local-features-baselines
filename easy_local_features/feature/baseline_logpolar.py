@@ -2,9 +2,6 @@
 # cartesian_weight = 'https://github.com/cvlab-epfl/log-polar-descriptors/raw/master/weights/cartesian.pth'
 
 
-# import pyrootutils
-# ROOT = pyrootutils.find_root()
-
 # import torch
 # import numpy as np
 # import torch.nn.functional as F

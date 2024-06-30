@@ -1,8 +1,7 @@
 import torch
 import os
-from pathlib import Path
 
-CACHE_BASE = Path(os.path.expanduser('~'), '.cache', 'torch', 'hub', 'checkpoints', 'easy_local_features')
+from .pathutils import CACHE_BASE
 
 def getCache(namespace):
     cache_path = CACHE_BASE / namespace

@@ -1,8 +1,3 @@
-import pyrootutils
-root = pyrootutils.find_root()
-
-# disk_folder = str(root / 'easy_local_features' / 'submodules' / 'git_disk') + '/'
-
 from easy_local_features.submodules.git_disk.disk import DISK
 
 import torch

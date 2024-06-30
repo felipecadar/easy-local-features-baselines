@@ -15,7 +15,6 @@ requires = [
     "kornia-rs",
     "kornia_moons",
     "omegaconf",
-    "pyrootutils",
     "tensorflow",
     "tensorflow_hub",
     "yacs",

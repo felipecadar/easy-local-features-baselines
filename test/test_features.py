@@ -5,8 +5,8 @@ from easy_local_features.utils import io, vis, ops
 import numpy as np
 import pkgutil
 import importlib
-import pyrootutils
-root = pyrootutils.find_root()
+
+from easy_local_features.utils.pathutils import ROOT 
 
 def get_all_subclasses(cls):
     subclasses = set(cls.__subclasses__())
@@ -26,8 +26,8 @@ def all_subclasses():
     return  get_all_subclasses(BaseExtractor)
 
 def test_feature_extractors(all_subclasses: list[BaseExtractor]):
-    image0 = io.fromPath(str(root / "assets/v_vitro/1.ppm"))
-    image1 = io.fromPath(str(root / "assets/v_vitro/2.ppm"))
+    image0 = io.fromPath(str(ROOT / "assets/v_vitro/1.ppm"))
+    image1 = io.fromPath(str(ROOT / "assets/v_vitro/2.ppm"))
     
     image0 = ops.crop_square(ops.resize_short_edge(image0, 320)[0])
     image1 = ops.crop_square(ops.resize_short_edge(image1, 320)[0])

@@ -8,8 +8,6 @@ import numpy as np
 from functools import partial
 import cv2
 import wget
-import pyrootutils
-root = pyrootutils.find_root()
 from omegaconf import OmegaConf
 
 models = {
@@ -121,13 +119,3 @@ class ALIKED_baseline(BaseExtractor):
     @property
     def has_detector(self):
         return True
-
-if __name__ == "__main__":
-    img = cv2.imread(str(root / "assets" / "notredame.png"))
-    extractor = ALIKED_baseline()
-
-    keypoints, descriptors = extractor.detectAndCompute(img)
-
-    output_image = cv2.drawKeypoints(img, keypoints, 0, (0, 0, 255))
-    cv2.imshow('superpoint', output_image)
-    cv2.waitKey(0)

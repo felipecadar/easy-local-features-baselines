@@ -7,8 +7,6 @@ import numpy as np
 from functools import partial
 import cv2
 import wget
-import pyrootutils
-root = pyrootutils.find_root()
 
 class SuperGlue_baseline():
     def __init__(self, weights='indoor', sinkhorn_iterations=100, match_threshold=0.2, descriptor_dim=256, device=-1, model_path=None):
@@ -106,22 +104,3 @@ class SuperGlue_baseline():
         matches2to1 = [cv2.DMatch(i,j,1/s) for i,[j,s] in enumerate(zip(matches1, matching_scores1))]
 
         return matches1to2, matches2to1
-
-if __name__ == "__main__":
-    import pdb
-    from easy_local_features.feature.baseline_superpoint import SuperPoint_baseline
-
-    img = cv2.imread(str(root / "assets" / "notredame.png"))
-    extractor = SuperPoint_baseline()
-    matcher = SuperGlue_baseline()
-
-    keypoints0, descriptors0 = extractor.detectAndCompute(img)
-    
-    matches1to2, matches2to1 = matcher.match(img, keypoints0, descriptors0, img, keypoints0, descriptors0)
-
-    matched_img1 = cv2.drawMatches(img, keypoints0, img, keypoints0, matches1to2, None)
-    matched_img2 = cv2.drawMatches(img, keypoints0, img, keypoints0, matches2to1, None)
-
-    stacked = np.vstack([matched_img1, matched_img2])
-    cv2.imshow("matches", stacked)
-    cv2.waitKey(0)
