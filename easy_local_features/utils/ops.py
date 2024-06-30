@@ -50,12 +50,8 @@ def to_cv(torch_image, convert_color=False, batch_idx=0, to_gray=False):
     if isinstance(torch_image, torch.Tensor):
         if len(torch_image.shape) == 2:
             torch_image = torch_image.unsqueeze(0)
-        elif len(torch_image.shape) == 4 and torch_image.shape[0] == 1:
-            torch_image = torch_image[0]
-        elif len(torch_image.shape) == 4 and torch_image.shape[0] > 1:
+        elif len(torch_image.shape) == 4:
             torch_image = torch_image[batch_idx]
-        elif len(torch_image.shape) == 3 and torch_image.shape[0] > 1:
-            torch_image = torch_image[batch_idx].unsqueeze(0)
             
         if torch_image.max() > 1:
             torch_image = torch_image / torch_image.max()
@@ -68,7 +64,11 @@ def to_cv(torch_image, convert_color=False, batch_idx=0, to_gray=False):
         img = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
         
     if to_gray:
-        img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+        if len(img.shape) == 3:
+            if img.shape[-1] == 3:
+                img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+        elif len(img.shape) == 2:
+            img = img[None]
         
     return img
 
