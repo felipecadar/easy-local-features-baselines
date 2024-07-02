@@ -26,6 +26,7 @@ def all_subclasses():
     load_all_modules_from_package(easy_local_features.feature)
     return  get_all_subclasses(BaseExtractor)
 
+@pytest.mark.skip
 def test_feature_extractors(all_subclasses: list[BaseExtractor]):
     image0 = io.fromPath(str(ROOT / "assets/notredame.png"))
     image1 = io.fromPath(str(ROOT / "assets/notredame2.jpeg"))

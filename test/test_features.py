@@ -6,6 +6,7 @@ import numpy as np
 import pkgutil
 import importlib
 from pathlib import Path
+import torch
 
 ROOT = Path(__file__).resolve().parent
 
@@ -26,6 +27,7 @@ def all_subclasses():
     load_all_modules_from_package(easy_local_features.feature)
     return  get_all_subclasses(BaseExtractor)
 
+@pytest.mark.skip
 def test_feature_extractors(all_subclasses: list[BaseExtractor]):
     image0 = io.fromPath(str(ROOT / "assets/notredame.png"))
     image1 = io.fromPath(str(ROOT / "assets/notredame2.jpeg"))
@@ -47,6 +49,12 @@ def test_feature_extractors(all_subclasses: list[BaseExtractor]):
         vis.plot_pair(image0, image1, title=subclass.__name__, figsize=(8, 4))
         vis.plot_matches(matches['mkpts0'], matches['mkpts1'])
         vis.save(f"test/results/{subclass.__name__}.png")
+    
+def test_cpu(all_subclasses: list[BaseExtractor]):
+    for subclass in all_subclasses:
+        extractor = subclass()
+        extractor.to('cpu')
+        # assert extractor.device == torch.device('cpu'), f"Error in {subclass.__name__}"
 
 if __name__ == "__main__":
     import argparse

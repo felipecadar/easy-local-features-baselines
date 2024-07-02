@@ -364,7 +364,7 @@ class SuperPoint_baseline(BaseExtractor):
 
     checkpoint_url = "https://github.com/magicleap/SuperGluePretrainedNetwork/raw/master/models/weights/superpoint_v1.pth"  # noqa: E501
 
-    def __init__(self, conf):
+    def __init__(self, conf={}):
         self.conf = conf = OmegaConf.merge(OmegaConf.create(self.default_conf), conf)
         self.DEV = torch.device('cpu')
         self.matcher = NearestNeighborMatcher()

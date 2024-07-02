@@ -259,7 +259,7 @@ class DALF_baseline(BaseExtractor):
         raise NotImplemented
     
     def to(self, device):
-        self.model.to(device)
+        self.net.to(device)
         self.DEV = device
 
     def match(self, image1, image2):
