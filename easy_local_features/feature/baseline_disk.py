@@ -74,7 +74,7 @@ class DISK_baseline(BaseExtractor):
     default_conf = {
         'window': 8,
         'desc_dim': 128,
-        'mode': 'nms',
+        'mode': 'rng',
         'top_k': 2048,
         'auto_resize': True,
     }
