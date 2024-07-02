@@ -186,8 +186,8 @@ class DISK_baseline(BaseExtractor):
         kp1, desc1 = self.detectAndCompute(image2)
         
         data = {
-            "descriptors0": desc0.unsqueeze(0),
-            "descriptors1": desc1.unsqueeze(0),
+            "descriptors0": desc0,
+            "descriptors1": desc1,
         }
         
         response = self.matcher(data)
@@ -195,8 +195,8 @@ class DISK_baseline(BaseExtractor):
         m0 = response['matches0'][0]
         valid = m0 > -1
         
-        mkpts0 = kp0[valid]
-        mkpts1 = kp1[m0[valid]]
+        mkpts0 = kp0[0][valid]
+        mkpts1 = kp1[0][m0[valid]]
         
         return {
             'mkpts0': mkpts0,
