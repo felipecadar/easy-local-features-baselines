@@ -395,7 +395,7 @@ class SuperPoint_baseline(BaseExtractor):
         raise NotImplementedError("This method is not implemented.")
 
     def to(self, device):
-        self.to(device)
+        self.model = self.model.to(device)
         self.DEV = device
 
     def match(self, image1, image2):

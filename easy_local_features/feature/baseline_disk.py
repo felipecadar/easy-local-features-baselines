@@ -158,9 +158,9 @@ class DISK_baseline(BaseExtractor):
         # order = np.argsort(scores)[::-1]
         order = torch.argsort(scores, descending=True)
 
-        keypoints   = keypoints[order]
-        descriptors = descriptors[order]
-        scores      = scores[order]
+        keypoints   = keypoints[order].unsqueeze(0)
+        descriptors = descriptors[order].unsqueeze(0)
+        scores      = scores[order].unsqueeze(0)
         
         if return_dict:
             return {

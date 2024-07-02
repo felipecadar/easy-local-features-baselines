@@ -1,85 +1,126 @@
-from kornia.feature import LightGlueMatcher, laf_from_center_scale_ori
-
-import cv2
-
-import kornia
 import torch
-import functools
-import numpy as np
+from omegaconf import OmegaConf
 
-AVAILABLE_FEATURES = ["superpoint", "disk"]
+from kornia.feature import LightGlue
+from ..feature.basemodel import BaseExtractor
+from .. import getExtractor
+from ..utils import io, vis, ops
 
-@functools.lru_cache(maxsize=1)
-def getLightGlueMatcher(features="superpoint"):
-    return LightGlueMatcher(feature_name=features)
-
-class LightGlue_baseline:
-    def __init__(self, features="superpoint"):
-        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-        self.matcher = getLightGlueMatcher(features=features).to(self.device)
-
-    def match(self, keypoints0, keypoints1, descriptors0, descriptors1):
-
-        if len(keypoints0) == 0 or len(keypoints1) == 0:
-            return [], [], []
+class LightGlue_baseline(BaseExtractor):
+    defalut_conf = {
+        "features": "superpoint",
+        "top_k": 2048,
+    }
+    
+    variations = {
+        "features": list(LightGlue.features.keys())
+    }
+    
+    def __init__(self, conf={}):
+        self.conf = conf = OmegaConf.merge(OmegaConf.create(self.defalut_conf), conf)
+        features = conf.get("features", self.defalut_conf["features"])
         
-        og_keypoints0 = keypoints0
-        og_keypoints1 = keypoints1
+        assert features in LightGlue.features, f"Invalid feature {features}. Available features: {list(LightGlue.features.keys())}"
         
-        if isinstance(keypoints0[0], cv2.KeyPoint):
-            keypoints0 = np.array([k.pt for k in keypoints0])
+        self.device = torch.device("cpu")
+        self.matcher = LightGlue(features).to(self.device)
 
-        if isinstance(keypoints1[0], cv2.KeyPoint):
-            keypoints1 = np.array([k.pt for k in keypoints1])
+        self._extractor = None
 
-        if isinstance(keypoints0, np.ndarray):
-            keypoints0 = torch.from_numpy(keypoints0).to(self.device)
+    @property
+    def extractor(self):
+        if self._extractor is None:
+            if self.conf["features"] == "dedodeg":
+                tmp_conf = self.conf.copy()
+                tmp_conf["descriptor_weights"] = "G-upright"
+                self._extractor = getExtractor("dedode", tmp_conf)
+            elif self.conf["features"] == "dedodeb":
+                tmp_conf = self.conf.copy()
+                tmp_conf["descriptor_weights"] = "B-upright"
+                self._extractor = getExtractor("dedode", tmp_conf)
+            else:
+                self._extractor = getExtractor(self.defalut_conf["features"], self.conf)
+            self._extractor.to(self.device)
+        return self._extractor        
 
-        if isinstance(keypoints1, np.ndarray):
-            keypoints1 = torch.from_numpy(keypoints1).to(self.device)
+    def detectAndCompute(self, image, return_dict=False):
+        return self.extractor.detectAndCompute(image, return_dict=return_dict)
 
-        if isinstance(descriptors0, np.ndarray):
-            descriptors0 = torch.from_numpy(descriptors0).to(self.device)
+    def detect(self, image):
+        return self.extractor.detect(image)
+    
+    def compute(self, image, keypoints):
+        return self.extractor.compute(image, keypoints)
+    
+    @property
+    def has_detector(self):
+        return self.extractor.has_detector
 
-        if isinstance(descriptors1, np.ndarray):
-            descriptors1 = torch.from_numpy(descriptors1).to(self.device)
+    def match(self, image0, image1):        
+        data0 = self.detectAndCompute(image0, return_dict=True)
+        data1 = self.detectAndCompute(image1, return_dict=True)
+        
+        data = {
+            "keypoints0": data0["keypoints"],
+            "keypoints1": data1["keypoints"],
+            "descriptors0": data0["descriptors"],
+            "descriptors1": data1["descriptors"],
+            "image0": image0,
+            "image1": image1,
+        }
 
-        # check shape
-        if len(keypoints0.shape) == 2:
-            keypoints0 = keypoints0.unsqueeze(0)
+        return self.match_cached(data)
 
-        if len(keypoints1.shape) == 2:
-            keypoints1 = keypoints1.unsqueeze(0)
+    def match_cached(self, data):
+        """
+        data: dict with keys:
+        data = 
+        {
+            "keypoints0": keypoints0,
+            "keypoints1": keypoints1,
+            "descriptors0": descriptors0,
+            "descriptors1": descriptors1,
+            "image0": image0,
+            "image1": image1,
+        }
+        """
 
-        # set to float
-        if keypoints0.dtype != torch.float32:
-            keypoints0 = keypoints0.float()
-
-        if keypoints1.dtype != torch.float32:
-            keypoints1 = keypoints1.float()
-
-        # to lafs
-        lafs0 = laf_from_center_scale_ori(keypoints0)
-        lafs1 = laf_from_center_scale_ori(keypoints1)
-
+        keypoints0 = data["keypoints0"]
+        keypoints1 = data["keypoints1"]
+        descriptors0 = data["descriptors0"]
+        descriptors1 = data["descriptors1"]
+        
         # match
         input = {
-            "lafs1": lafs0,
-            "lafs2": lafs1,
-            "desc1": descriptors0,
-            "desc2": descriptors1,
+            "image0": {
+                "keypoints": keypoints0,
+                "descriptors": descriptors0,
+                "image_size": torch.tensor(ops.prepareImage(data["image0"]).shape[-2:]).unsqueeze(0),
+            },
+            "image1": {
+                "keypoints": keypoints1,
+                "descriptors": descriptors1,
+                "image_size": torch.tensor(ops.prepareImage(data["image1"]).shape[-2:]).unsqueeze(0),
+            },
         }
+        
         with torch.no_grad():
-            mscores, matches = self.matcher(**input)
+            out = self.matcher(input)
 
-        mscores = mscores.squeeze(-1).detach().cpu().numpy()
-        matches = matches.detach().cpu().numpy().astype(int)
+        matches = out["matches"][0].to(self.device)
+        mscores = out["matching_scores0"][0].to(self.device)
 
-        cv2_matches = [ 
-            cv2.DMatch(_imgIdx=0, _trainIdx=i, _queryIdx=j, _distance=1-s) 
-            for [i, j], s in 
-            zip(matches, mscores) 
-        ]
+        mkpts0 = keypoints0[0, matches[:, 0]]
+        mkpts1 = keypoints1[0, matches[:, 1]]
 
-        return og_keypoints0, og_keypoints1, cv2_matches
+        return {
+            "matches": matches,
+            "scores": mscores,
+            "mkpts0": mkpts0,
+            "mkpts1": mkpts1,
+        }
     
+    def to(self, device):
+        self.matcher = self.matcher.to(device)
+        self.device = device
+        return self
