@@ -38,7 +38,7 @@ def test_feature_extractors(all_subclasses: list[BaseExtractor]):
     os.makedirs("test/results", exist_ok=True)
     
     for subclass in all_subclasses:
-        extractor = subclass({'top_k': 128})
+        extractor = subclass({'top_k': 1024})
         
         if not extractor.has_detector:
             from easy_local_features.feature.baseline_alike import ALIKE_baseline
