@@ -168,3 +168,26 @@ def crop_patches(image, keypoints, patch_size = 32, mode='nearest'):
     
     return patches
 
+
+def sort_keypoints(mkpts0, mkpts1=None):
+    # get a lexical index of the keypoints based on the x and y coordinates
+    if len(mkpts0.shape) == 3:
+        # batched keypoints
+        B, N, _ = mkpts0.shape
+        for b in range(B):
+            idxs = np.lexsort((mkpts0[b, :, 0], mkpts0[b, :, 1]))
+            mkpts0[b] = mkpts0[b, idxs]
+            if mkpts1 is not None:
+                mkpts1[b] = mkpts1[b, idxs]
+
+        if mkpts1 is not None:
+            return mkpts0, mkpts1
+        return mkpts0
+    else:
+        idxs = np.lexsort((mkpts0[:, 0], mkpts0[:, 1]))
+        mkpts0 = mkpts0[idxs]
+        if mkpts1 is not None:
+            mkpts1 = mkpts1[idxs]
+            return mkpts0, mkpts1
+
+        return mkpts0    

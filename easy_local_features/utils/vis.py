@@ -5,7 +5,7 @@ import torch
 import cv2
 import torchvision
 
-from .ops import to_cv
+from .ops import to_cv, sort_keypoints
 
 default_colors = {
     'g': '#4ade80',
@@ -113,7 +113,7 @@ def plot_matches(mkpts0, mkpts1, fig=None, ax=None, color=None, **kwargs):
         mkpts0 = mkpts0.detach().cpu().numpy()
     if isinstance(mkpts1, torch.Tensor):
         mkpts1 = mkpts1.detach().cpu().numpy()
-        
+    
     if color is None:
         rainbow = plt.get_cmap('hsv')
         color = [rainbow(i / len(mkpts0)) for i in range(len(mkpts0))]
@@ -125,6 +125,8 @@ def plot_matches(mkpts0, mkpts1, fig=None, ax=None, color=None, **kwargs):
     for i, c in enumerate(color):
         if c in default_colors:
             color[i] = default_colors[c]
+            
+    mkpts0, mkpts1 = sort_keypoints(mkpts0, mkpts1)
     
     for i, (mkp0, mkp1) in enumerate(zip(mkpts0, mkpts1)):
         con = ConnectionPatch(

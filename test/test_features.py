@@ -29,11 +29,11 @@ def all_subclasses():
 
 @pytest.mark.skip
 def test_feature_extractors(all_subclasses: list[BaseExtractor]):
-    image0 = io.fromPath(str(ROOT / "assets/notredame.png"))
-    image1 = io.fromPath(str(ROOT / "assets/notredame2.jpeg"))
+    image0 = io.fromPath(str(ROOT / "assets/megadepth0.jpg"))
+    image1 = io.fromPath(str(ROOT / "assets/megadepth1.jpg"))
     
-    image0 = ops.crop_square(ops.resize_short_edge(image0, 320)[0])
-    image1 = ops.crop_square(ops.resize_short_edge(image1, 320)[0])
+    image0 = ops.resize_short_edge(image0, 320)[0]
+    image1 = ops.resize_short_edge(image1, 320)[0]
     
     os.makedirs("test/results", exist_ok=True)
     

@@ -25,103 +25,6 @@ import torchvision.transforms as tvf
 from easy_local_features.submodules.git_sfd2.nets import ResSegNet, ResSegNetV2
 from easy_local_features.submodules.git_sfd2.utils import extract_resnet_return
 
-confs = {
-    'ressegnetv2-20220810-wapv2-sd2mfsf-uspg-0001-n4096-r1600': {
-        'output': 'feats-ressegnetv2-20220810-wapv2-sd2mfsf-uspg-0001-n4096-r1600',
-        'model': {
-            'name': 'ressegnetv2',
-            'use_stability': True,
-            'max_keypoints': 4096,
-            'conf_th': 0.001,
-            'multiscale': False,
-            'scales': [1.0],
-            'model_fn': osp.join(os.getcwd(),
-                                 "weights/20220810_ressegnetv2_wapv2_ce_sd2mfsf_uspg.pth"),
-        },
-        'preprocessing': {
-            'grayscale': False,
-            'resize_max': 1600,
-        },
-        'mask': False,
-    },
-
-    'ressegnetv2-20220810-wapv2-sd2mfsf-uspg-0001-n3000-r1600': {
-        'output': 'feats-ressegnetv2-20220810-wapv2-sd2mfsf-uspg-0001-n3000-r1600',
-        'model': {
-            'name': 'ressegnetv2',
-            'use_stability': True,
-            'max_keypoints': 3000,
-            'conf_th': 0.001,
-            'multiscale': False,
-            'scales': [1.0],
-            'model_fn': osp.join(os.getcwd(),
-                                 "weights/20220810_ressegnetv2_wapv2_ce_sd2mfsf_uspg.pth"),
-        },
-        'preprocessing': {
-            'grayscale': False,
-            'resize_max': 1600,
-        },
-        'mask': False,
-    },
-
-    'ressegnetv2-20220810-wapv2-sd2mfsf-uspg-0001-n2000-r1600': {
-        'output': 'feats-ressegnetv2-20220810-wapv2-sd2mfsf-uspg-0001-n2000-r1600',
-        'model': {
-            'name': 'ressegnetv2',
-            'use_stability': True,
-            'max_keypoints': 2000,
-            'conf_th': 0.001,
-            'multiscale': False,
-            'scales': [1.0],
-            'model_fn': osp.join(os.getcwd(),
-                                 "weights/20220810_ressegnetv2_wapv2_ce_sd2mfsf_uspg.pth"),
-        },
-        'preprocessing': {
-            'grayscale': False,
-            'resize_max': 1600,
-        },
-        'mask': False,
-    },
-
-    'ressegnetv2-20220810-wapv2-sd2mfsf-uspg-0001-n1000-r1600': {
-        'output': 'feats-ressegnetv2-20220810-wapv2-sd2mfsf-uspg-0001-n1000-r1600',
-        'model': {
-            'name': 'ressegnetv2',
-            'use_stability': True,
-            'max_keypoints': 1000,
-            'conf_th': 0.001,
-            'multiscale': False,
-            'scales': [1.0],
-            'model_fn': osp.join(os.getcwd(),
-                                 "weights/20220810_ressegnetv2_wapv2_ce_sd2mfsf_uspg.pth"),
-        },
-        'preprocessing': {
-            'grayscale': False,
-            'resize_max': 1600,
-        },
-        'mask': False,
-    },
-
-    'ressegnetv2-20220810-wapv2-sd2mfsf-uspg-0001-n4096-r1024': {
-        'output': 'feats-ressegnetv2-20220810-wapv2-sd2mfsf-uspg-0001-n4096-r1024',
-        'model': {
-            'name': 'ressegnetv2',
-            'use_stability': True,
-            'max_keypoints': 4096,
-            'conf_th': 0.001,
-            'multiscale': False,
-            'scales': [1.0],
-            'model_fn': osp.join(os.getcwd(),
-                                 "weights/20220810_ressegnetv2_wapv2_ce_sd2mfsf_uspg.pth"),
-        },
-        'preprocessing': {
-            'grayscale': False,
-            'resize_max': 1024,
-        },
-        'mask': False,
-    },
-}
-
 class ImageDataset(Data.Dataset):
     default_conf = {
         'globs': ['*.jpg', '*.png', '*.jpeg', '*.JPG', '*.PNG'],
@@ -222,29 +125,31 @@ def get_model(model_name, use_stability=False):
 
 class SFD2(nn.Module):
     def __init__(self, 
-            config_name="ressegnetv2-20220810-wapv2-sd2mfsf-uspg-0001-n4096-r1600",
-            use_stability=False,
-            top_k=4096
+            model_name="ressegnetv2", # "ressegnetv2", "ressegnet"
+            use_stability=True,
+            top_k=4096,
+            conf_th=0.001,
+            scales=[1.0],
         ):
         super().__init__()
-        model_name = config_name.split("-")[0]
-        self.model_config = confs[config_name]
         self.model, self.extractor = get_model(model_name, use_stability)
         self.top_k = top_k
+        self.conf_th = conf_th
+        self.scales = scales
         self.model.eval()
         
     def forward(self, data):
         pred = self.extractor(self.model, img=data["image"],
                     topK=self.top_k,
                     mask=None,
-                    conf_th=self.model_config["model"]["conf_th"],
-                    scales=self.model_config["model"]["scales"],
-                    )
+                    conf_th=self.conf_th,
+                    scales=self.scales,
+                )
 
-        pred['image_size'] = original_size = data['original_size'][0].cpu().numpy()
-        if 'keypoints' in pred.keys():
-            size = np.array(data['image'].shape[-2:][::-1])
-            scales = (original_size / size).astype(np.float32)
-            pred['keypoints'] = (pred['keypoints'] + .5) * scales[None] - .5
+        # pred['image_size'] = original_size = data['original_size'][0].cpu().numpy()
+        # if 'keypoints' in pred.keys():
+            # size = np.array(data['image'].shape[-2:][::-1])
+            # scales = (original_size / size).astype(np.float32)
+            # pred['keypoints'] = (pred['keypoints'] + .5) * scales[None] - .5
             
         return pred

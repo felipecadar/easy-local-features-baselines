@@ -16,8 +16,10 @@ weights_link = 'https://github.com/feixue94/sfd2/raw/dev/weights/20220810_resseg
 class SFD2_baseline(BaseExtractor):
     default_conf = {
         'top_k': 2048,
-        "config_name":"ressegnetv2-20220810-wapv2-sd2mfsf-uspg-0001-n4096-r1600",
-        "use_stability":False,
+        "model_name":"ressegnetv2", # "ressegnetv2", "ressegnet"
+        "use_stability":True,
+        "conf_th":0.001,
+        "scales":[1.0],
     }
     
     def __init__(self, conf={}):
@@ -26,9 +28,11 @@ class SFD2_baseline(BaseExtractor):
         self.max_kps = conf.top_k
         self.DEV = torch.device('cpu')        
         self.model = SFD2(
-            config_name=conf.config_name, 
+            model_name=conf.model_name, 
             use_stability=conf.use_stability,
             top_k=conf.top_k,
+            conf_th=conf.conf_th,
+            scales=conf.scales,
         )
         
         weights = downloadModel("sfd2", "20220810_ressegnetv2_wapv2_ce_sd2mfsf_uspg.pth", weights_link)
