@@ -47,7 +47,6 @@ class SFD2_baseline(BaseExtractor):
         # make all into tensor and move to device
         for k in pred:
             pred[k] = torch.tensor(pred[k]).to(self.DEV).unsqueeze(0)
-            print(k, pred[k].shape)
 
         if return_dict:
             return pred
