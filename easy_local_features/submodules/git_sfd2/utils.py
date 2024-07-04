@@ -191,7 +191,7 @@ def extract_resnet_return(model, img, conf_th=0.001,
                     desc = desc.data.cpu().numpy().reshape(D, -1)
                 else:
                     # Interpolate into descriptor map using 2D point locations.
-                    samp_pts = torch.from_numpy(pts[:2, :].copy())
+                    samp_pts = torch.from_numpy(pts[:2, :].copy()).to(coarse_desc.device)
                     samp_pts[0, :] = (samp_pts[0, :] / (float(nw) / 2.)) - 1.
                     samp_pts[1, :] = (samp_pts[1, :] / (float(nh) / 2.)) - 1.
                     samp_pts = samp_pts.transpose(0, 1).contiguous()

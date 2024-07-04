@@ -241,7 +241,7 @@ class SFD2(nn.Module):
                     scales=self.model_config["model"]["scales"],
                     )
 
-        pred['image_size'] = original_size = data['original_size'][0].numpy()
+        pred['image_size'] = original_size = data['original_size'][0].cpu().numpy()
         if 'keypoints' in pred.keys():
             size = np.array(data['image'].shape[-2:][::-1])
             scales = (original_size / size).astype(np.float32)
