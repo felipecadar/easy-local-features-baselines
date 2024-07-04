@@ -129,27 +129,7 @@ class D2Net_baseline(BaseExtractor):
     def compute(self, img, keypoints):
         raise NotImplemented
     
-    # def match(self, image1, image2):
-    #     kp0, desc0 = self.detectAndCompute(image1)
-    #     kp1, desc1 = self.detectAndCompute(image2)
-        
-    #     data = {
-    #         "descriptors0": desc0.unsqueeze(0),
-    #         "descriptors1": desc1.unsqueeze(0),
-    #     }
-        
-    #     response = self.matcher(data)
-        
-    #     m0 = response['matches0'][0]
-    #     valid = m0 > -1
-        
-    #     mkpts0 = kp0[valid]
-    #     mkpts1 = kp1[m0[valid]]
-        
-    #     return {
-    #         'mkpts0': mkpts0,
-    #         'mkpts1': mkpts1,
-    #     }
+
 
     def to(self, device):
         self.model.to(device)

@@ -181,27 +181,7 @@ class DISK_baseline(BaseExtractor):
         self.model.to(device)
         self.DEV = device
 
-    # def match(self, image1, image2):
-    #     kp0, desc0 = self.detectAndCompute(image1)
-    #     kp1, desc1 = self.detectAndCompute(image2)
-        
-    #     data = {
-    #         "descriptors0": desc0,
-    #         "descriptors1": desc1,
-    #     }
-        
-    #     response = self.matcher(data)
-        
-    #     m0 = response['matches0'][0]
-    #     valid = m0 > -1
-        
-    #     mkpts0 = kp0[0][valid]
-    #     mkpts1 = kp1[0][m0[valid]]
-        
-    #     return {
-    #         'mkpts0': mkpts0,
-    #         'mkpts1': mkpts1,
-    #     }
+
         
     @property
     def has_detector(self):
