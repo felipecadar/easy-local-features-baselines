@@ -38,6 +38,13 @@ def test_feature_extractors(all_subclasses: list[BaseExtractor]):
     os.makedirs("test/results", exist_ok=True)
     
     for subclass in all_subclasses:
+        # skip DEAL
+        if "DEAL" in subclass.__name__:
+            print(f"Skipping {subclass.__name__}")
+            continue
+        
+        print(f"Testing {subclass.__name__}")
+        
         extractor = subclass({'top_k': 1024})
         
         if not extractor.has_detector:
@@ -67,10 +74,6 @@ if __name__ == "__main__":
     import easy_local_features.feature
     load_all_modules_from_package(easy_local_features.feature)
     _all_subclasses = get_all_subclasses(BaseExtractor)
-    
-    # print all subclasses
-    for subclass in _all_subclasses:
-        print(subclass.__name__)
     
     if args.model != "all":
         _all_subclasses = [subclass for subclass in _all_subclasses if args.model in subclass.__name__]

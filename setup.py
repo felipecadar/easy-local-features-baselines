@@ -22,7 +22,7 @@ requires = [
 
 setup(
     name='easy_local_features',
-    version='0.4.10',
+    version='0.4.11',
     author='eucadar',
     author_email='python@eucadar.com',
     packages=find_packages(exclude=('tests', 'docs', 'assets')),

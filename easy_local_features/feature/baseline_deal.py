@@ -33,8 +33,8 @@ class DEAL_baseline(BaseExtractor):
             kps = self.detect(gray)
             kps, desc = self.compute(gray, kps)
 
-        kps = torch.tensor([kp.pt for kp in kps]).to(self.DEV)
-        desc = torch.from_numpy(desc).to(self.DEV)
+        kps = torch.tensor([kp.pt for kp in kps]).to(self.DEV).unsqueeze(0)
+        desc = desc.to(self.DEV)
         
         if return_dict:
             return {
@@ -60,6 +60,8 @@ class DEAL_baseline(BaseExtractor):
 
         with torch.no_grad():
             desc = self.deal.compute(gray, kps)
+            
+        desc = torch.from_numpy(desc).to(self.DEV).unsqueeze(0)
 
         return kps, desc
     
@@ -67,27 +69,27 @@ class DEAL_baseline(BaseExtractor):
         self.deal.device = device
         self.DEV = device
 
-    def match(self, image1, image2):
-        kp0, desc0 = self.detectAndCompute(image1)
-        kp1, desc1 = self.detectAndCompute(image2)
+    # def match(self, image1, image2):
+    #     kp0, desc0 = self.detectAndCompute(image1)
+    #     kp1, desc1 = self.detectAndCompute(image2)
         
-        data = {
-            "descriptors0": desc0.unsqueeze(0),
-            "descriptors1": desc1.unsqueeze(0),
-        }
+    #     data = {
+    #         "descriptors0": desc0.unsqueeze(0),
+    #         "descriptors1": desc1.unsqueeze(0),
+    #     }
         
-        response = self.matcher(data)
+    #     response = self.matcher(data)
         
-        m0 = response['matches0'][0]
-        valid = m0 > -1
+    #     m0 = response['matches0'][0]
+    #     valid = m0 > -1
         
-        mkpts0 = kp0[valid]
-        mkpts1 = kp1[m0[valid]]
+    #     mkpts0 = kp0[valid]
+    #     mkpts1 = kp1[m0[valid]]
         
-        return {
-            'mkpts0': mkpts0,
-            'mkpts1': mkpts1,
-        }
+    #     return {
+    #         'mkpts0': mkpts0,
+    #         'mkpts1': mkpts1,
+    #     }
         
     @property
     def has_detector(self):

@@ -40,41 +40,37 @@ class SOSNet_baseline(BaseExtractor):
         
         desc = rearrange(desc, '(B N) D -> B N D', B=B, N=N, D=128)
         
-        if do_squeeze:
-            desc = desc.squeeze(0)
-            keypoints = keypoints.squeeze(0)
-            
         return keypoints, desc
     
     def to(self, device):
         self.model.to(device)
         self.DEV = device
 
-    def match(self, image1, image2):
-        try:
-            kp0, desc0 = self.detectAndCompute(image1)
-            kp1, desc1 = self.detectAndCompute(image2)
-        except NotImplemented:
-            raise NotImplemented("This method requires detectAndCompute to be implemented. Add a detector to the extractor with addDetector.")
+    # def match(self, image1, image2):
+    #     try:
+    #         kp0, desc0 = self.detectAndCompute(image1)
+    #         kp1, desc1 = self.detectAndCompute(image2)
+    #     except NotImplemented:
+    #         raise NotImplemented("This method requires detectAndCompute to be implemented. Add a detector to the extractor with addDetector.")
             
         
-        data = {
-            "descriptors0": desc0.unsqueeze(0),
-            "descriptors1": desc1.unsqueeze(0),
-        }
+    #     data = {
+    #         "descriptors0": desc0.unsqueeze(0),
+    #         "descriptors1": desc1.unsqueeze(0),
+    #     }
         
-        response = self.matcher(data)
+    #     response = self.matcher(data)
         
-        m0 = response['matches0'][0]
-        valid = m0 > -1
+    #     m0 = response['matches0'][0]
+    #     valid = m0 > -1
         
-        mkpts0 = kp0[valid]
-        mkpts1 = kp1[m0[valid]]
+    #     mkpts0 = kp0[valid]
+    #     mkpts1 = kp1[m0[valid]]
         
-        return {
-            'mkpts0': mkpts0,
-            'mkpts1': mkpts1,
-        }
+    #     return {
+    #         'mkpts0': mkpts0,
+    #         'mkpts1': mkpts1,
+    #     }
         
     @property
     def has_detector(self):
