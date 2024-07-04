@@ -87,6 +87,10 @@ class ALIKE_baseline(BaseExtractor):
         descriptors = pred['descriptors'] # (N, 64)
         scores = pred['scores'] # (N,)
         
+        keypoints = keypoints.unsqueeze(0)
+        descriptors = descriptors.unsqueeze(0)
+        scores = scores.unsqueeze(0)
+        
         if return_dict:
             return {
                 'keypoints': keypoints,
@@ -111,8 +115,8 @@ class ALIKE_baseline(BaseExtractor):
         kp1, desc1 = self.detectAndCompute(image2)
         
         data = {
-            "descriptors0": desc0.unsqueeze(0),
-            "descriptors1": desc1.unsqueeze(0),
+            "descriptors0": desc0,
+            "descriptors1": desc1,
         }
         
         response = self.matcher(data)
