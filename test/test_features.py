@@ -55,6 +55,7 @@ def test_feature_extractors(all_subclasses: list[BaseExtractor]):
         
         vis.plot_pair(image0, image1, title=subclass.__name__, figsize=(8, 4))
         vis.plot_matches(matches['mkpts0'], matches['mkpts1'])
+        vis.add_text(f"Matches: {len(matches['mkpts0'])}")
         vis.save(f"test/results/{subclass.__name__}.png")
     
 def test_cpu(all_subclasses: list[BaseExtractor]):

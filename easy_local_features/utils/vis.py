@@ -140,6 +140,13 @@ def plot_matches(mkpts0, mkpts1, fig=None, ax=None, color=None, **kwargs):
     
     return fig, ax
 
+def add_text(text, fig=None, ax=None, **kwargs):
+    if fig is None or ax is None:
+        fig = plt.gcf()
+        ax = fig.axes
+    ax[0].text(0, 0, text, color='black', fontsize=12, ha='left', va='top', bbox=dict(facecolor='white', alpha=0.5, edgecolor='white'))
+    return fig, ax
+
 def show():
     plt.tight_layout()
     plt.show()
