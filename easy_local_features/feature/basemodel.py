@@ -48,7 +48,8 @@ class BaseExtractor(ABC):
             return keypoints, descriptors
         
         self.detectAndCompute = detectAndCompute
-
+    
+    # @abstractmethod
     def match(self, image1, image2):
         
         kp0, desc0 = self.detectAndCompute(image1)

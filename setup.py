@@ -18,6 +18,7 @@ requires = [
     "tensorflow",
     "tensorflow_hub",
     "yacs",
+    "einops",
 ]
 
 setup(

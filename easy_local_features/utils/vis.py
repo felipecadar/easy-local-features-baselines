@@ -51,13 +51,39 @@ def plot_pair(img0, img1, figsize=(20, 10), fig=None, ax=None, title=None, verti
         fig.suptitle(title)
     return fig, ax
 
-def plot_depth(img0, img1, fig=None, ax=None, title=None) -> tuple[plt.Figure, list[plt.Axes]]:
+def plot_image(image, figsize=(10, 10), fig=None, ax=None, title=None, gray=True) -> tuple[plt.Figure, list[plt.Axes]]:
+    if fig is None or ax is None:
+        fig, ax = plt.subplots(1, 1, figsize=figsize)
+    
+    if gray:
+        ax.imshow(to_cv(image, to_gray=gray), cmap='gray')
+    else:
+        ax.imshow(to_cv(image))
+    
+    ax.axis('off')
+    
+    if title is not None:
+        fig.suptitle(title)
+    return fig, ax
+
+def plot_depth_pair(img0, img1, fig=None, ax=None, title=None) -> tuple[plt.Figure, list[plt.Axes]]:
     if fig is None or ax is None:
         fig = plt.gcf()
         ax = fig.axes
 
     ax[0].imshow(to_cv(img0, to_gray=True), cmap='jet', alpha=0.5)
     ax[1].imshow(to_cv(img1, to_gray=True), cmap='jet', alpha=0.5)
+    
+    if title is not None:
+        fig.suptitle(title)
+    return fig, ax
+
+def plot_depth(depth, fig=None, ax=None, title=None) -> tuple[plt.Figure, list[plt.Axes]]:
+    if fig is None or ax is None:
+        fig = plt.gcf()
+        ax = fig.axes
+
+    ax[0].imshow(depth, cmap='jet', alpha=0.5)
     
     if title is not None:
         fig.suptitle(title)
@@ -143,8 +169,8 @@ def plot_matches(mkpts0, mkpts1, fig=None, ax=None, color=None, **kwargs):
 def add_text(text, fig=None, ax=None, **kwargs):
     if fig is None or ax is None:
         fig = plt.gcf()
-        ax = fig.axes
-    ax[0].text(0, 0, text, color='black', fontsize=12, ha='left', va='top', bbox=dict(facecolor='white', alpha=0.5, edgecolor='white'))
+        ax = fig.axes[0]
+    ax.text(0, 0, text, color='black', fontsize=12, ha='left', va='top', bbox=dict(facecolor='white', alpha=0.5, edgecolor='white'))
     return fig, ax
 
 def show():

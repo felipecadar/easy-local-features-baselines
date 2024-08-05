@@ -72,12 +72,13 @@ if __name__ == "__main__":
         return parser.parse_args()
     args = parse()
     
-    if args.model != "all":
+    if args.model == "all":
         _all_subclasses = available_extractors
     else:
         _all_subclasses = [args.model]
     
     for _model in _all_subclasses:
+        print(f"Testing {_model}")
         test_feature_extractors(_model)
 
         

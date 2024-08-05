@@ -8,11 +8,10 @@ available_extractors = [
     'dalf', 'deal', 'dedode',
     'delf', 'disk', 'r2d2',
     'sosnet', 'superpoint', 'tfeat',
+    'xfeat',
 ]
 
 def importByName(name):
-    
-    
     package_name = f"easy_local_features.feature.baseline_{name}"
     importlib.import_module(package_name)
     

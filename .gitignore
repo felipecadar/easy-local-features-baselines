@@ -132,3 +132,4 @@ dmypy.json
 .pytest_cache
 
 test/results
+output/
