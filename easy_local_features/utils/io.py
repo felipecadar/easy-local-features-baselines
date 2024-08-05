@@ -3,8 +3,12 @@ import torch
 import torchvision
 import cv2
 import functools
+from pathlib import Path
 
 def fromPath(path, gray=False, batch=True, imagenet=False):
+    if isinstance(path, Path):
+        path = str(path)
+        
     if path.endswith(".ppm"):
         import cv2
         im = cv2.imread(path)
