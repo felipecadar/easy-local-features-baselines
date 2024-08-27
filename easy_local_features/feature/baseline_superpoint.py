@@ -366,7 +366,7 @@ class SuperPoint_baseline(BaseExtractor):
 
     def __init__(self, conf={}):
         self.conf = conf = OmegaConf.merge(OmegaConf.create(self.default_conf), conf)
-        self.DEV = torch.device('cpu')
+        self.device = torch.device('cpu')
         self.matcher = NearestNeighborMatcher()
         self.model = Net(conf)
         self.model.load_state_dict(
@@ -375,7 +375,7 @@ class SuperPoint_baseline(BaseExtractor):
         self.model.eval()
 
     def detectAndCompute(self, img, return_dict=False):
-        img = ops.prepareImage(img).to(self.DEV)
+        img = ops.prepareImage(img).to(self.device)
         pred = self.model({"image": img})
         
         if return_dict:
@@ -391,7 +391,7 @@ class SuperPoint_baseline(BaseExtractor):
 
     def to(self, device):
         self.model = self.model.to(device)
-        self.DEV = device
+        self.device = device
 
 
         

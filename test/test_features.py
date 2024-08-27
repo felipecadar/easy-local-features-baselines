@@ -47,7 +47,12 @@ def test_feature_extractors(extractor_name):
     if not extractor.has_detector:
         # from easy_local_features.feature.baseline_alike import ALIKE_baseline
         from easy_local_features.feature.baseline_superpoint import SuperPoint_baseline
-        extractor.addDetector(SuperPoint_baseline)
+        detector = SuperPoint_baseline({
+            'nms_radius': 4,
+            'keypoint_threshold': 0.005,
+            'max_keypoints': 4096,
+        })
+        extractor.addDetector(detector)
     
     matches = extractor.match(image0, image1)
     

@@ -106,7 +106,7 @@ class RELF_baseline(BaseExtractor):
         raise NotImplementedError
 
     def compute(self, img, kps):
-        image = ops.prepareImage(img, imagenet=True)
+        image = ops.prepareImage(img, imagenet=True).to(self.device)
 
         with torch.no_grad():
             desc = self.net(image, kps)
