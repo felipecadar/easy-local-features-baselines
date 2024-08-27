@@ -37,7 +37,7 @@ class BaseExtractor(ABC):
         self.detect = detector.detect
         
         def detectAndCompute(image, return_dict=False):
-            keypoints = detector.detect(image)
+            keypoints = self.detect(image)
             keypoints, descriptors = self.compute(image, keypoints)
             if return_dict:
                 return {
