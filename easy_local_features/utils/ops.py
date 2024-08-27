@@ -191,3 +191,50 @@ def sort_keypoints(mkpts0, mkpts1=None):
             return mkpts0, mkpts1
 
         return mkpts0    
+    
+def to_homogeneous(kpts):
+    if isinstance(kpts, np.ndarray):
+        if len(kpts.shape) == 3:
+            B, N, _ = kpts.shape
+            return np.concatenate((kpts, np.ones((B, N, 1))), axis=-1)
+        else:
+            return np.concatenate((kpts, np.ones((kpts.shape[0], 1))), axis=-1)
+    elif isinstance(kpts, torch.Tensor):
+        if len(kpts.shape) == 3:
+            B, N, _ = kpts.shape
+            return torch.cat((kpts, torch.ones(B, N, 1, device=kpts.device)), dim=-1)
+        else:
+            return torch.cat((kpts, torch.ones(kpts.shape[0], 1, device=kpts.device)), dim=-1)
+        
+def to_grid(kpts, H, W):
+    # kpts => in pixel coordinates
+    # H, W => image dimensions
+    # returns the grid coordinates (-1, 1) for grid_sample
+    
+    if isinstance(kpts, np.ndarray):
+        if len(kpts.shape) == 3:
+            B, N, _ = kpts.shape
+            return 2 * kpts / np.array([W, H]) - 1
+        else:
+            return 2 * kpts / np.array([W, H]) - 1
+        
+    elif isinstance(kpts, torch.Tensor):
+        if len(kpts.shape) == 3:
+            B, N, _ = kpts.shape
+            return 2 * kpts / torch.tensor([W, H], device=kpts.device) - 1
+        else:
+            return 2 * kpts / torch.tensor([W, H], device=kpts.device) - 1
+        
+def from_homogeneous(kpts):
+    if isinstance(kpts, np.ndarray):
+        if len(kpts.shape) == 3:
+            B, N, _ = kpts.shape
+            return kpts[:, :, :2] / kpts[:, :, 2:]
+        else:
+            return kpts[:, :2] / kpts[:, 2:]
+    elif isinstance(kpts, torch.Tensor):
+        if len(kpts.shape) == 3:
+            B, N, _ = kpts.shape
+            return kpts[:, :, :2] / kpts[:, :, 2:]
+        else:
+            return kpts[:, :2] / kpts[:, 2:]
