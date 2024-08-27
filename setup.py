@@ -19,11 +19,13 @@ requires = [
     "tensorflow_hub",
     "yacs",
     "einops",
+    "e2cnn",
+    "easydict",
 ]
 
 setup(
     name='easy_local_features',
-    version='0.4.15',
+    version='0.4.16',
     author='eucadar',
     author_email='python@eucadar.com',
     packages=find_packages(exclude=('tests', 'docs', 'assets')),

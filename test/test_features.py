@@ -42,11 +42,12 @@ def test_feature_extractors(extractor_name):
     image1 = ops.resize_short_edge(image1, 320)[0]
     
     os.makedirs("test/results", exist_ok=True)
-    extractor = getExtractor(extractor_name, {'top_k': 1024})
+    extractor = getExtractor(extractor_name, {'top_k': 4096})
     
     if not extractor.has_detector:
-        from easy_local_features.feature.baseline_alike import ALIKE_baseline
-        extractor.addDetector(ALIKE_baseline)
+        # from easy_local_features.feature.baseline_alike import ALIKE_baseline
+        from easy_local_features.feature.baseline_superpoint import SuperPoint_baseline
+        extractor.addDetector(SuperPoint_baseline)
     
     matches = extractor.match(image0, image1)
     
