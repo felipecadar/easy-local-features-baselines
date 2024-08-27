@@ -35,6 +35,7 @@ class BaseExtractor(ABC):
     
     def addDetector(self, detector):
         detector = detector(self.conf)
+        detector.to(self.device)
         self.detect = detector.detect
         
         def detectAndCompute(image, return_dict=False):
