@@ -70,9 +70,8 @@ class RELF_baseline(BaseExtractor):
 
         os.environ['Orientation'] = str(conf.orientation)
         self.max_kps = conf.top_k
-        self.DEV = torch.device('cpu')        
+        self.device = torch.device('cpu')        
         self.net = RELF_model(self.conf)
-        
         
         if conf.model == 're_resnet':
             url = 'https://github.com/felipecadar/easy-local-features-baselines/releases/download/RELF-weights/best_model.pt'
@@ -83,7 +82,7 @@ class RELF_baseline(BaseExtractor):
         else:
             raise NotImplementedError(f"Model {conf.model}: weights not available.")
         
-        weights = torch.load(cache_path, map_location=self.DEV)
+        weights = torch.load(cache_path, map_location=self.device)
         self.net.train()
         self.net.load_state_dict(weights)
         
@@ -97,7 +96,7 @@ class RELF_baseline(BaseExtractor):
         })
         
         self.net.eval()
-        self.net.to(self.DEV)
+        self.net.to(self.device)
 
 
     def detectAndCompute(self, image, return_dict=False):
@@ -117,7 +116,7 @@ class RELF_baseline(BaseExtractor):
     
     def to(self, device):
         self.net.to(device)
-        self.DEV = device
+        self.device = device
         return self
 
     @property

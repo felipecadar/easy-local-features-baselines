@@ -35,7 +35,15 @@ class BaseExtractor(ABC):
     
     def addDetector(self, detector):
         detector = detector(self.conf)
-        detector.to(self.device)
+        # if device in self
+        if hasattr(self, 'device'):
+            detector.to(self.device)
+        elif hasattr(self, 'DEV'):
+            detector.to(self.DEV)
+        else:
+            print("Warning: Detector device not set.")
+            print("Setting detector device to cpu.")
+            
         self.detect = detector.detect
         
         def detectAndCompute(image, return_dict=False):
