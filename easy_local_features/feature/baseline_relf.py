@@ -122,3 +122,23 @@ class RELF_baseline(BaseExtractor):
     @property
     def has_detector(self):
         return False
+
+if __name__ == "__main__":
+    from easy_local_features.feature.baseline_superpoint import SuperPoint_baseline
+    from easy_local_features.utils import io
+    
+    relf = RELF_baseline()
+    sp = SuperPoint_baseline({
+        'keypoint_threshold': 0,
+        'max_keypoints': 1024,
+        'force_num_keypoints': True,
+    })
+    
+    batch_size = 4
+    imgs = io.fromPath('test/assets/megadepth0.jpg').repeat(batch_size, 1, 1, 1)
+    
+    kps = sp.detect(imgs)
+    kps, desc = relf.compute(imgs, kps)
+    
+    print(kps.shape, desc.shape)
+    

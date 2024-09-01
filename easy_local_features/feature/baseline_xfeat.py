@@ -35,7 +35,7 @@ class XFeat_baseline(BaseExtractor):
         return response['keypoints'].unsqueeze(0), response['descriptors'].unsqueeze(0)
 
     def detect(self, img, op=None):
-        return self.detectAndCompute(img, return_dict=True)
+        return self.detectAndCompute(img, return_dict=True)['keypoints']
 
     # def match(self, image1, image2):
     #     mkpts0, mkpts1 = self.model.match_xfeat(image1, image2)
@@ -65,7 +65,8 @@ class XFeat_baseline(BaseExtractor):
         self.model.to(device)
         self.model.dev = device
         self.device = device
-
+        return self
+    
     @property
     def has_detector(self):
         return True
