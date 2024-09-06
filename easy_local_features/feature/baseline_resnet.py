@@ -28,13 +28,21 @@ from ..utils import ops
 
 
 class ResNet_baseline(BaseExtractor):
-    available_weights = [
+    available_models = [
         'resnet18',
         'resnet34',
         'resnet50',
         'resnet101',
         'resnet152',
     ]
+    
+    available_weights = {
+        'resnet18': 'ResNet18_Weights.DEFAULT',
+        'resnet34': 'ResNet34_Weights.DEFAULT',
+        'resnet50': 'ResNet50_Weights.DEFAULT',
+        'resnet101': 'ResNet101_Weights.DEFAULT',
+        'resnet152': 'ResNet152_Weights.DEFAULT',
+    }
         
     default_conf = {"weights": "resnet18", "allow_resize": True}
     
@@ -42,7 +50,7 @@ class ResNet_baseline(BaseExtractor):
         self.conf = conf = OmegaConf.merge(OmegaConf.create(self.default_conf), conf)
         self.device   = torch.device('cpu')
         self.matcher = NearestNeighborMatcher()
-        self.model = torch.hub.load('pytorch/vision:v0.10.0', conf.weights, pretrained=True)
+        self.model = torch.hub.load('pytorch/vision:v0.10.0', conf.weights, weights=self.available_weights[conf.weights])
         self.model.eval()
         
     def features_forward(self, x, stop=4):
@@ -125,11 +133,23 @@ if __name__ == "__main__":
     img0 = io.fromPath("test/assets/megadepth0.jpg")
     img1 = io.fromPath("test/assets/megadepth1.jpg")
     
+    # resize to 512x512
+    img0 = F.interpolate(img0, [512,512])
+    img1 = F.interpolate(img1, [512,512])
+    
     kps0 = detector.detect(img0)
     kps1 = detector.detect(img1)
     
-    _, descriptors0 = method.compute(img0, kps0)
-    _, descriptors1 = method.compute(img1, kps1)
+    batched_images = torch.cat([img0, img1], dim=0)
+    batched_kps = torch.cat([kps0, kps1], dim=0)
+    
+    _, batched_descriptors = method.compute(batched_images, batched_kps)
+    
+    descriptors0 = batched_descriptors[0].unsqueeze(0)
+    descriptors1 = batched_descriptors[1].unsqueeze(0)
+    
+    # _, descriptors0 = method.compute(img0, kps0)
+    # _, descriptors1 = method.compute(img1, kps1)
     
     print(descriptors0.shape)
     print(descriptors1.shape)
