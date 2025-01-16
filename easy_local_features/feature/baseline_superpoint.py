@@ -231,7 +231,7 @@ class Net(nn.Module):
             c5, descriptor_dim, kernel_size=1, stride=1, padding=0
         )
     
-    def forward(self, data):
+    def forward(self, data, dense_outputs=False):
         image = data["image"]
         if image.shape[1] == 3:  # RGB
             scale = image.new_tensor([0.299, 0.587, 0.114]).view(1, 3, 1, 1)
@@ -344,7 +344,7 @@ class Net(nn.Module):
                 "descriptors": desc.transpose(-1, -2),
             }
 
-            if self.conf.dense_outputs:
+            if self.conf.dense_outputs or dense_outputs:
                 pred["dense_descriptors"] = dense_desc
 
         return pred
@@ -374,7 +374,7 @@ class SuperPoint_baseline(BaseExtractor):
         )
         self.model.eval()
 
-    def detectAndCompute(self, img, return_dict=False):
+    def detectAndCompute(self, img, return_dict=False, sparse_outputs=False):
         img = ops.prepareImage(img).to(self.device)
         pred = self.model({"image": img})
         
@@ -387,7 +387,17 @@ class SuperPoint_baseline(BaseExtractor):
         return self.detectAndCompute(img)[0]
     
     def compute(self, img, keypoints):
-        raise NotImplementedError("This method is not implemented.")
+        img = ops.prepareImage(img).to(self.device)
+        pred = self.model({"image": img}, dense_outputs=True)
+        dense_desc = pred["dense_descriptors"]
+        keypoints = keypoints - 0.5
+    
+        if self.conf.legacy_sampling:
+            desc = sample_descriptors(keypoints, dense_desc, 8)
+        else:
+            desc = sample_descriptors_fix_sampling(keypoints, dense_desc, 8)
+
+        return desc.transpose(-1, -2)
 
     def to(self, device):
         self.model = self.model.to(device)
@@ -398,3 +408,41 @@ class SuperPoint_baseline(BaseExtractor):
     @property
     def has_detector(self):
         return True
+    
+if __name__ == "__main__":
+    from easy_local_features.utils import io, vis, ops
+    method = SuperPoint_baseline({
+        'legacy_sampling': False
+    })
+    
+    img0 = io.fromPath("test/assets/megadepth0.jpg")
+
+    kpts = method.detect(img0)
+    desc = method.compute(img0, kpts)
+    
+    kpts2, desc2 = method.detectAndCompute(img0)
+    
+    assert torch.allclose(kpts, kpts2)
+    
+    # import pdb; pdb.set_trace()
+    print(desc)
+    print(desc2)
+    assert torch.allclose(desc, desc2, atol=1e-5)
+
+    # img1 = io.fromPath("test/assets/megadepth1.jpg")
+    
+    # nn_matches = method.match(img0, img1)
+    # xfeat_matches = method.match_xfeat(img0, img1)
+    # xfeat_star_matches = method.match_xfeat_star(img0, img1)
+    
+    # vis.plot_pair(img0, img1)
+    # vis.plot_matches(nn_matches['mkpts0'], nn_matches['mkpts1'])
+    # vis.add_text("")
+
+    # vis.plot_pair(img0, img1)
+    # vis.plot_matches(xfeat_matches['mkpts0'], xfeat_matches['mkpts1'])
+
+    # vis.plot_pair(img0, img1)
+    # vis.plot_matches(xfeat_star_matches['mkpts0'], xfeat_star_matches['mkpts1'])
+    
+    # vis.show()
