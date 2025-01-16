@@ -59,7 +59,35 @@ class XFeat_baseline(BaseExtractor):
         }
 
     def compute(self, img, keypoints):
-        raise NotImplemented
+        '''Compute descriptors for keypoints in the image.
+            img: np.array, image
+            keypoints: np.array | torch.tensor, keypoints
+        '''
+        
+        if isinstance(keypoints, np.ndarray):
+            keypoints = torch.tensor(keypoints)
+        keypoints = keypoints.to(self.device)
+        
+        # if unbatched, add batch dimension
+        if len(keypoints.shape) == 2:
+            keypoints = keypoints.unsqueeze(0)
+        
+        img = ops.prepareImage(img, gray=True).to(self.device)
+
+        x, rh1, rw1 = self.model.preprocess_tensor(img)
+        keypoints = keypoints / torch.tensor([rw1, rh1]).to(self.device)
+        B, _, _H1, _W1 = x.shape
+
+        M1, K1, H1 = self.model.net(x)
+        M1 = F.normalize(M1, dim=1)
+
+        #Interpolate descriptors at kpts positions
+        feats = self.model.interpolator(M1, keypoints, H = _H1, W = _W1)
+
+        #L2-Normalize
+        feats = F.normalize(feats, dim=-1)
+        return feats
+
 
     def to(self, device):
         self.model.to(device)
@@ -77,20 +105,33 @@ if __name__ == "__main__":
     method = XFeat_baseline()
     
     img0 = io.fromPath("test/assets/megadepth0.jpg")
-    img1 = io.fromPath("test/assets/megadepth1.jpg")
-    
-    nn_matches = method.match(img0, img1)
-    xfeat_matches = method.match_xfeat(img0, img1)
-    xfeat_star_matches = method.match_xfeat_star(img0, img1)
-    
-    vis.plot_pair(img0, img1)
-    vis.plot_matches(nn_matches['mkpts0'], nn_matches['mkpts1'])
-    vis.add_text("")
 
-    vis.plot_pair(img0, img1)
-    vis.plot_matches(xfeat_matches['mkpts0'], xfeat_matches['mkpts1'])
-
-    vis.plot_pair(img0, img1)
-    vis.plot_matches(xfeat_star_matches['mkpts0'], xfeat_star_matches['mkpts1'])
+    kpts = method.detect(img0)
+    desc = method.compute(img0, kpts)
     
-    vis.show()
+    kpts2, desc2 = method.detectAndCompute(img0)
+    
+    assert torch.allclose(kpts, kpts2)
+    
+    # import pdb; pdb.set_trace()
+    print(desc)
+    print(desc2)
+    assert torch.allclose(desc, desc2, atol=1e-5)
+
+    # img1 = io.fromPath("test/assets/megadepth1.jpg")
+    
+    # nn_matches = method.match(img0, img1)
+    # xfeat_matches = method.match_xfeat(img0, img1)
+    # xfeat_star_matches = method.match_xfeat_star(img0, img1)
+    
+    # vis.plot_pair(img0, img1)
+    # vis.plot_matches(nn_matches['mkpts0'], nn_matches['mkpts1'])
+    # vis.add_text("")
+
+    # vis.plot_pair(img0, img1)
+    # vis.plot_matches(xfeat_matches['mkpts0'], xfeat_matches['mkpts1'])
+
+    # vis.plot_pair(img0, img1)
+    # vis.plot_matches(xfeat_star_matches['mkpts0'], xfeat_star_matches['mkpts1'])
+    
+    # vis.show()
