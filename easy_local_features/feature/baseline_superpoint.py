@@ -428,21 +428,3 @@ if __name__ == "__main__":
     print(desc)
     print(desc2)
     assert torch.allclose(desc, desc2, atol=1e-5)
-
-    # img1 = io.fromPath("test/assets/megadepth1.jpg")
-    
-    # nn_matches = method.match(img0, img1)
-    # xfeat_matches = method.match_xfeat(img0, img1)
-    # xfeat_star_matches = method.match_xfeat_star(img0, img1)
-    
-    # vis.plot_pair(img0, img1)
-    # vis.plot_matches(nn_matches['mkpts0'], nn_matches['mkpts1'])
-    # vis.add_text("")
-
-    # vis.plot_pair(img0, img1)
-    # vis.plot_matches(xfeat_matches['mkpts0'], xfeat_matches['mkpts1'])
-
-    # vis.plot_pair(img0, img1)
-    # vis.plot_matches(xfeat_star_matches['mkpts0'], xfeat_star_matches['mkpts1'])
-    
-    # vis.show()
