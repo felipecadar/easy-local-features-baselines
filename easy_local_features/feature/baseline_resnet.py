@@ -123,7 +123,7 @@ if __name__ == "__main__":
     from easy_local_features.utils import io, vis, ops
     from easy_local_features.feature.baseline_xfeat import XFeat_baseline
     method = ResNet_baseline({
-        'weights': 'resnet18',
+        'weights': 'resnet152',
         'allow_resize': False,
     })
     detector = XFeat_baseline({

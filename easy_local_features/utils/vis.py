@@ -94,6 +94,10 @@ def plot_keypoints(keypoints0=None, keypoints1=None, fig=None, ax=None, color=No
     if fig is None or ax is None:
         fig = plt.gcf()
         ax = fig.axes
+        
+    # if we have both keypoints sort them by x and then by y
+    if keypoints0 is not None and keypoints1 is not None:
+        keypoints0, keypoints1 = sort_keypoints(keypoints0, keypoints1)
     
     if keypoints0 is not None:        
         if all_colors is None:
@@ -108,6 +112,7 @@ def plot_keypoints(keypoints0=None, keypoints1=None, fig=None, ax=None, color=No
             keypoints0 = keypoints0.detach().cpu().numpy()
         if len(keypoints0.shape) == 3:
             keypoints0 = keypoints0.squeeze(0)
+            
         ax[0].scatter(keypoints0[:, 0], keypoints0[:, 1], s=kps_size, c=all_colors0, **kwargs)
 
     if keypoints1 is not None:

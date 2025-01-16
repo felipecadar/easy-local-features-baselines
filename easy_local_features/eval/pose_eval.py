@@ -34,6 +34,12 @@ def plot_matches_parallel(args_plot):
         mkpts0 = mkpts0.cpu().numpy()
         mkpts1 = mkpts1.cpu().numpy()
         
+    if len(mkpts0) == 0 or len(mkpts1) == 0:
+        fig, ax = vis.plot_pair(image0, image1)
+        vis.save(out_path)
+        vis.plt.close('all')
+        return True
+
     (pose,details) = poselib.estimate_relative_pose(
             mkpts0.tolist(), 
             mkpts1.tolist(),
@@ -187,6 +193,7 @@ class PoseEval:
             print(k, v)
         
         self.pairs = self.read_gt()
+        print(f'Loaded {len(self.pairs)} pairs')
 
         os.makedirs(self.config['output'], exist_ok=True)
 
@@ -241,6 +248,29 @@ class PoseEval:
                         'K1': K1,
                         'T_0to1': T_0to1,
                     })
+
+                # 2 3x3 matrices and one 4x4 matrix
+                if len(all_info) == 36:
+                    # scannet format
+                    K0 = np.array(all_info[2:11]).astype(float).reshape(3, 3)
+                    K1 = np.array(all_info[11:20]).astype(float).reshape(3, 3)
+                    T_0to1 = np.array(all_info[20:36]).astype(float).reshape(4, 4)
+                    
+                    image0 = os.path.join(self.config['data_path'], image0)
+                    image1 = os.path.join(self.config['data_path'], image1)
+                    depth0 = image0.replace('color', 'depth').replace('jpg', 'png')
+                    depth1 = image1.replace('color', 'depth').replace('jpg', 'png')
+
+                    pairs.append({
+                        'image0': image0,
+                        'image1': image1,
+                        'depth0': depth0,
+                        'depth1': depth1,
+                        'K0': K0,
+                        'K1': K1,
+                        'T_0to1': T_0to1,
+                    })
+                    
                 elif len(all_info) == 32:
                     # megadepth format
                     K0 = np.array(all_info[2:11]).astype(float).reshape(3, 3)
@@ -264,6 +294,9 @@ class PoseEval:
                         'K1': K1,
                         'T_0to1': T_0to1,
                     })
+                else:
+                    print(f'Unknown format for pair with {len(all_info)} elements: {line}')
+                    raise ValueError(f'Unknown format for pair {line}')
 
             if self.config['max_pairs'] > 0:
                 pairs = pairs[:self.config['max_pairs']]
@@ -315,7 +348,7 @@ class PoseEval:
         return all_matches
     
     def oracle_matches_scannet(self, pair, kpts0, kpts1):
-        from reasoning.datasets.scannet import warp_kpts
+        from easy_local_features.utils.ops import warp_kpts
         
         # project points to the other image and get gt matches based on distance
         K0, K1 = pair['K0'], pair['K1']
@@ -336,7 +369,7 @@ class PoseEval:
             depth0 = torch.tensor(depth0).float()
             depth1 = torch.tensor(depth1).float()
         
-        valid0, proj1 = warp_kpts(kpts0[None], depth0[None], depth1[None], T_0to1[None], K0[None], K1[None])
+        valid0, proj1 = warp_kpts(kpts0[None], depth0[None], depth1[None], T_0to1[None], K0[None], K1[None], do_on_cpu=True)
         proj1 = torch.where(valid0[..., None], proj1, torch.tensor(-1.0))[0]
         valid0 = valid0[0]
         
@@ -357,15 +390,15 @@ class PoseEval:
 
         all_matches = self.extract_and_save_matches(matcher_fn, name=name, force=force)
         
-        ## plot matches in parallel
-        # out_folder = os.path.join(self.config['output'], name, 'matches')
-        # os.makedirs(out_folder, exist_ok=True)
-        # plot_args = [ (pair_idx, pair, all_matches[pair_idx]['mkpts0'], all_matches[pair_idx]['mkpts1'], out_folder) for pair_idx, pair in enumerate(self.pairs) ]
-        # # select one every 10 
-        # plot_args = plot_args[::10]
-        # pool = mp.Pool(self.config['n_workers'])
-        # r = list(tqdm(pool.imap(plot_matches_parallel, plot_args), total=len(plot_args), desc=f'Plotting matches for {name}', leave=False))
-        # pool.close()
+        # plot matches in parallel
+        out_folder = os.path.join(self.config['output'], name, 'matches')
+        os.makedirs(out_folder, exist_ok=True)
+        plot_args = [ (pair_idx, pair, all_matches[pair_idx]['mkpts0'], all_matches[pair_idx]['mkpts1'], out_folder) for pair_idx, pair in enumerate(self.pairs) ]
+        # select one every 10 
+        plot_args = plot_args[::10]
+        pool = mp.Pool(self.config['n_workers'])
+        r = list(tqdm(pool.imap(plot_matches_parallel, plot_args), total=len(plot_args), desc=f'Plotting matches for {name}', leave=False))
+        pool.close()
         # for args in tqdm(plot_args, desc=f'Plotting matches for {name}'):
             # vis.plot_matches_parallel(args)
             
@@ -453,22 +486,36 @@ def parse():
 
 
 if __name__ == "__main__":
-    
     args = parse()
     
     pose_eval =    this_dir = os.path.dirname(os.path.abspath(__file__))
+    from easy_local_features import getExtractor
+    method = getExtractor(args.method, {'top_k': 4096})
     megadepth = PoseEval({
-        'data_path': '/Users/cadar/Documents/Datasets/megadepth1500/images',
-        'pairs_path': '/Users/cadar/Documents/Datasets/megadepth1500/pairs_calibrated.txt',
-        'output': './output/pose_eval/megadepth/',
-        'max_pairs': -1,
+        'data_path': '/Users/cadar/Documents/Datasets/scannet_test_1500/',
+        'pairs_path': '/Users/cadar/Documents/Datasets/scannet_test_1500/pairs_calibrated.txt',
+        'output': './output/pose_eval/scannet/',
+        'max_pairs': 100,
         'pose_estimator': 'poselib',
         'ransac_thresholds': [0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0, 4.5, 5.0, 5.5, 6.0],
         'n_workers': 36,
-        'resize': 1200,
+        # 'resize': -1,
+        # 'detector_only': True,
     })
     
-    from easy_local_features import getExtractor
+    megadepth.run_benchmark(method.match, name=f'xfeat_full', force=True) 
     
-    method = getExtractor(args.method, {'top_k': 4096})
-    megadepth.run_benchmark(method.match, name='xfeat_real', force=False)
+    for size in range(400, 2000, 100):
+        megadepth = PoseEval({
+            'data_path': '/Users/cadar/Documents/Datasets/scannet_test_1500/',
+            'pairs_path': '/Users/cadar/Documents/Datasets/scannet_test_1500/pairs_calibrated.txt',
+            'output': './output/pose_eval/scannet/',
+            'max_pairs': 100,
+            'pose_estimator': 'poselib',
+            'ransac_thresholds': [0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0, 4.5, 5.0, 5.5, 6.0],
+            'n_workers': 36,
+            'resize': size,
+            # 'detector_only': True,
+        })
+        
+        megadepth.run_benchmark(method.match, name=f'xfeat_full_{size}', force=True) 

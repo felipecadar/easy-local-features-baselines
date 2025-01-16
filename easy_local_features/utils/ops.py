@@ -238,3 +238,78 @@ def from_homogeneous(kpts):
             return kpts[:, :, :2] / kpts[:, :, 2:]
         else:
             return kpts[:, :2] / kpts[:, 2:]
+        
+@torch.no_grad()
+def warp_kpts(kpts0, depth0, depth1, T_0to1, K0, K1, do_on_cpu=False):
+    """ Warp kpts0 from I0 to I1 with depth, K and Rt
+    Also check covisibility and depth consistency.
+    Depth is consistent if relative error < 0.2 (hard-coded).
+    
+    Args:
+        kpts0 (torch.Tensor): [N, L, 2] - <x, y>,
+        depth0 (torch.Tensor): [N, H, W],
+        depth1 (torch.Tensor): [N, H, W],
+        T_0to1 (torch.Tensor): [N, 3, 4],
+        K0 (torch.Tensor): [N, 3, 3],
+        K1 (torch.Tensor): [N, 3, 3],
+    Returns:
+        calculable_mask (torch.Tensor): [N, L]
+        warped_keypoints0 (torch.Tensor): [N, L, 2] <x0_hat, y1_hat>
+    """
+    if do_on_cpu:
+        og_device = kpts0.device
+        kpts0 = kpts0.cpu()
+        depth0 = depth0.cpu()
+        depth1 = depth1.cpu()
+        T_0to1 = T_0to1.cpu()
+        K0 = K0.cpu()
+        K1 = K1.cpu()
+    
+    kpts0_long = (kpts0 - 0.5).round().long().clip(0, 2000-1)
+
+    depth0[:, 0, :] = 0 ; depth1[:, 0, :] = 0 
+    depth0[:, :, 0] = 0 ; depth1[:, :, 0] = 0 
+
+    # Sample depth, get calculable_mask on depth != 0
+    kpts0_depth = torch.stack(
+        [depth0[i, kpts0_long[i, :, 1], kpts0_long[i, :, 0]] for i in range(kpts0.shape[0])], dim=0
+    )  # (N, L)
+    nonzero_mask = kpts0_depth > 0
+
+    # Unproject
+    kpts0_h = torch.cat([kpts0, torch.ones_like(kpts0[:, :, [0]])], dim=-1) * kpts0_depth[..., None]  # (N, L, 3)
+    kpts0_cam = K0.inverse() @ kpts0_h.transpose(2, 1)  # (N, 3, L)
+
+    # Rigid Transform
+    w_kpts0_cam = T_0to1[:, :3, :3] @ kpts0_cam + T_0to1[:, :3, [3]]    # (N, 3, L)
+    w_kpts0_depth_computed = w_kpts0_cam[:, 2, :] 
+
+    # Project
+    w_kpts0_h = (K1 @ w_kpts0_cam).transpose(2, 1)  # (N, L, 3)
+    w_kpts0 = w_kpts0_h[:, :, :2] / (w_kpts0_h[:, :, [2]] + 1e-5)  # (N, L, 2), +1e-4 to avoid zero depth
+    
+    kpts1_depth = torch.zeros_like(kpts0_depth)
+    
+    w_kpts0_long = w_kpts0.round().long()
+    for i in range(w_kpts0.shape[0]):
+        valid = (w_kpts0_long[i, :, 0] >= 0) & (w_kpts0_long[i, :, 0] < depth1.shape[2]) & (w_kpts0_long[i, :, 1] >= 0) & (w_kpts0_long[i, :, 1] < depth1.shape[1])
+        kpts1_depth[i, valid] = depth1[i, w_kpts0_long[i, valid, 1], w_kpts0_long[i, valid, 0]]
+
+    depth_diff = torch.abs(w_kpts0_depth_computed - kpts1_depth)
+    depth_diff_mask = depth_diff < 0.2
+    
+    inside_the_image_mask = (w_kpts0[..., 0] > 0) & (w_kpts0[..., 0] < depth1.shape[2]) & (w_kpts0[..., 1] > 0) & (w_kpts0[..., 1] < depth1.shape[1])
+    
+    valid_mask = nonzero_mask * depth_diff_mask * inside_the_image_mask
+    
+    if do_on_cpu:
+        valid_mask = valid_mask.to(og_device)
+        w_kpts0 = w_kpts0.to(og_device)
+        kps0 = kpts0.to(og_device)
+        depth0 = depth0.to(og_device)
+        depth1 = depth1.to(og_device)
+        T_0to1 = T_0to1.to(og_device)
+        K0 = K0.to(og_device)
+        K1 = K1.to(og_device)
+
+    return valid_mask, w_kpts0
