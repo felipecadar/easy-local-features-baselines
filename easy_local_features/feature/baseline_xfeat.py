@@ -27,12 +27,25 @@ class XFeat_baseline(BaseExtractor):
 
     def detectAndCompute(self, img, return_dict=None):
         img = ops.prepareImage(img).to(self.device)
-        response = self.model.detectAndCompute(img, top_k = self.conf.top_k)[0]
+        response = self.model.detectAndCompute(img, top_k = self.conf.top_k)
+
+        # batch it
+        batch_response = {}
+        for im_result in response:
+            for key in im_result:
+                if key not in batch_response:
+                    batch_response[key] = []
+                batch_response[key].append(im_result[key])
+        
+        for key in batch_response:
+            batch_response[key] = torch.stack(batch_response[key])
+            if len(batch_response[key].shape) == 2:
+                batch_response[key] = batch_response[key].unsqueeze(0)
         
         if return_dict:
-            return response
+            return batch_response
         
-        return response['keypoints'].unsqueeze(0), response['descriptors'].unsqueeze(0)
+        return batch_response['keypoints'], batch_response['descriptors']
 
     def detect(self, img, op=None):
         return self.detectAndCompute(img, return_dict=True)['keypoints']
