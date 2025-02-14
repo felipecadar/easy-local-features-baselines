@@ -62,7 +62,22 @@ class ALIKED_baseline(BaseExtractor):
         return keypoints
 
     def compute(self, img, keypoints):
-        raise NotImplemented
+        if isinstance(keypoints, np.ndarray) or isinstance(keypoints, list):
+            keypoints = torch.tensor(keypoints)
+            
+        keypoints = keypoints.to(self.DEV)
+
+        if len(keypoints) == 0:
+            return torch.zeros(0, 128).to(self.DEV)
+        
+        if len(keypoints.shape) == 2:
+            keypoints = keypoints.unsqueeze(0)
+            
+        image = ops.prepareImage(img, batch=True).to(self.DEV)
+        with torch.no_grad():
+            res = self.model.forward_desc({'image': image}, keypoints)
+
+        return res['descriptors']
     
 
     def to(self, device):
@@ -72,3 +87,29 @@ class ALIKED_baseline(BaseExtractor):
     @property
     def has_detector(self):
         return True
+    
+    
+if __name__ == "__main__":
+    
+    from easy_local_features.utils import io, vis, ops
+    method = ALIKED_baseline({
+        "model_name": "aliked-n16",
+        "top_k": 128,
+        "detection_threshold": 0.2,
+        "force_num_keypoints": False,
+        "nms_radius": 2,
+    })
+    
+    img0 = io.fromPath("test/assets/megadepth0.jpg")
+
+    kpts = method.detect(img0)
+    desc = method.compute(img0, kpts)
+    
+    kpts2, desc2 = method.detectAndCompute(img0)
+    
+    assert torch.allclose(kpts, kpts2)
+    
+    # import pdb; pdb.set_trace()
+    print(desc)
+    print(desc2)
+    assert torch.allclose(desc, desc2, atol=1e-5)
