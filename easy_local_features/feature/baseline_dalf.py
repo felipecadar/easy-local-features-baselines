@@ -104,6 +104,7 @@ class DALF_baseline(BaseExtractor):
         'return_map': False,
         'threshold': 25.,
         'MS': False,
+        'weights': 'default',
     }
 
     def __init__(self, conf={}):
@@ -111,8 +112,11 @@ class DALF_baseline(BaseExtractor):
         fixed_tps = conf.fixed_tps
 
         self.DEV = torch.device('cpu')
-        url = 'https://github.com/verlab/DALF_CVPR_2023/raw/main/weights/model_ts-fl_final.pth'
-        model = str(downloadModel('dalf', 'model_ts-fl_final', url))
+        if conf.weights == 'default':
+          url = 'https://github.com/verlab/DALF_CVPR_2023/raw/main/weights/model_ts-fl_final.pth'
+          model = str(downloadModel('dalf', 'model_ts-fl_final', url))
+        else:
+          model = conf.weights
 
         if 'end2end-backbone' in model:
           backbone_nfeats = 128
