@@ -8,7 +8,7 @@ available_extractors = [
     'dalf', 'deal', 'dedode',
     'delf', 'disk', 'r2d2',
     'sosnet', 'superpoint', 'tfeat',
-    'xfeat', 'relf', 'orb',
+    'xfeat', 'relf', 'roma', 'orb'
 ]
 
 def importByName(name):
