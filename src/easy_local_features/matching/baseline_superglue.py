@@ -1,10 +1,9 @@
-import sys, os
+import os
 
 from easy_local_features.submodules.git_superglue.models.superglue import SuperGlue
 
 import torch
 import numpy as np
-from functools import partial
 import cv2
 import wget
 
@@ -53,7 +52,16 @@ class SuperGlue_baseline():
             img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
         return torch.from_numpy(img/255.).float()[None, None].to(self.DEV)
 
-    def match(self, img0, kps0, desc0, img1, kps1, desc1):
+    def match(self, img0, img1, kps0=None, desc0=None, kps1=None, desc1=None):
+        """Unified matcher API.
+        - If keypoints/descriptors are provided, uses them.
+        - Otherwise, raises NotImplementedError since SuperGlue requires features.
+        """
+        if kps0 is None or kps1 is None or desc0 is None or desc1 is None:
+            raise NotImplementedError("SuperGlue requires keypoints and descriptors; provide kps0,kps1,desc0,desc1.")
+        return self._match_with_features(img0, kps0, desc0, img1, kps1, desc1)
+
+    def _match_with_features(self, img0, kps0, desc0, img1, kps1, desc1):
 
         if kps0 is None or kps1 is None:
             return [], []
@@ -100,7 +108,10 @@ class SuperGlue_baseline():
         matching_scores0[matching_scores0 == 0] = 1e-9
         matching_scores1[matching_scores1 == 0] = 1e-9
 
-        matches1to2 = [cv2.DMatch(i,j,1/s) for i,[j,s] in enumerate(zip(matches0, matching_scores0))]
-        matches2to1 = [cv2.DMatch(i,j,1/s) for i,[j,s] in enumerate(zip(matches1, matching_scores1))]
-
-        return matches1to2, matches2to1
+        # Return raw arrays for downstream conversion; higher-level adapters can build cv2 matches if desired.
+        return {
+            "matches0": matches0,
+            "matches1": matches1,
+            "matching_scores0": matching_scores0,
+            "matching_scores1": matching_scores1,
+        }

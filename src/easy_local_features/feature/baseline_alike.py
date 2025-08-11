@@ -105,7 +105,7 @@ class ALIKE_baseline(BaseExtractor):
         return self.detectAndCompute(img)[0]
 
     def compute(self, image, keypoints):
-    raise NotImplementedError
+        raise NotImplementedError("ALIKE_baseline.compute is not implemented; use detectAndCompute instead.")
 
     def to(self, device):
         self.model.to(device)

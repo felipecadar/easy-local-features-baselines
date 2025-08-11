@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from omegaconf import OmegaConf
+from typing import Optional
 
 
 class MethodType:
@@ -15,7 +15,7 @@ class MethodType:
 
 class BaseExtractor(ABC):
     # Optional override in subclasses; if None, inferred from `has_detector`.
-    METHOD_TYPE: str | None = None
+    METHOD_TYPE: Optional[str] = None
 
     @abstractmethod
     def detectAndCompute(self, image, return_dict=False):
@@ -70,27 +70,52 @@ class BaseExtractor(ABC):
     
     # @abstractmethod
     def match(self, image1, image2):
-        
+        """Match two images using this method's extractor and matcher.
+
+        Inputs:
+        - image1, image2: numpy arrays, torch tensors, or paths. Each will be
+          prepared by the concrete extractor's detectAndCompute implementation.
+
+        Returns dict with at least:
+        - mkpts0: matched keypoints from image1, shape [M, 2] or [1, M, 2]
+        - mkpts1: matched keypoints from image2, shape [M, 2] or [1, M, 2]
+        Optionally, may include matcher-specific fields like matches0, matches1, scores.
+        """
+        # Ensure a matcher exists; lazily fall back to a simple NN matcher.
+        if not hasattr(self, "matcher") or self.matcher is None:
+            try:
+                from ..matching.nearest_neighbor import NearestNeighborMatcher
+                self.matcher = NearestNeighborMatcher()
+            except Exception as e:
+                raise RuntimeError(
+                    "No matcher set on extractor and failed to create default NearestNeighborMatcher."
+                ) from e
+
         kp0, desc0 = self.detectAndCompute(image1)
         kp1, desc1 = self.detectAndCompute(image2)
-        
+
         data = {
             "descriptors0": desc0,
             "descriptors1": desc1,
         }
-        
+
         response = self.matcher(data)
-        
-        m0 = response['matches0'][0]
+
+        m0 = response["matches0"][0]
         valid = m0 > -1
-        
+
         mkpts0 = kp0[0, valid]
         mkpts1 = kp1[0, m0[valid]]
-        
-        return {
-            'mkpts0': mkpts0,
-            'mkpts1': mkpts1,
-        }    
+
+        out = {
+            "mkpts0": mkpts0,
+            "mkpts1": mkpts1,
+        }
+        # pass-through common optional outputs if present
+        for k in ("matches0", "matches1", "matching_scores0", "matching_scores1", "similarity"):
+            if k in response:
+                out[k] = response[k]
+        return out    
 
     @property
     def method_type(self) -> str:

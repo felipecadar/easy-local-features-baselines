@@ -55,7 +55,15 @@ class RoMa_baseline(BaseExtractor):
         raise NotImplementedError("Every BaseExtractor must implement the compute method.")    
     
     def to(self, device):
-        raise NotImplementedError("Every BaseExtractor must implement the to method.")
+        # RoMa model constructor accepts device; here we move logical state
+        self.device = torch.device(device)
+        # romatch API builds internal modules on init; no explicit .to available
+        # but we can recreate the model on the target device to be safe
+        model_key = self.conf.get('model', 'outdoor')
+        if model_key in models:
+            self.model = models[model_key](device=self.device)
+            self.model.eval()
+        return self
     
     @property
     def has_detector(self):

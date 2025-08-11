@@ -1,7 +1,5 @@
 from kornia.feature import LoFTR
 
-import cv2
-
 import kornia
 import torch
 import functools
@@ -52,14 +50,13 @@ class LoFTR_baseline:
         input = {"image0": img1, "image1": img2}
         correspondences_dict = self.matcher(input)
 
-        matches = []
-        mkpts1 = correspondences_dict["keypoints0"].cpu().numpy()
-        mkpts2 = correspondences_dict["keypoints1"].cpu().numpy()
-        mconf = correspondences_dict["confidence"].cpu().numpy()
-        batch_idx = correspondences_dict["batch_indexes"].cpu().numpy()
-
-        cv2_mkpts1 = [ cv2.KeyPoint(x=mkpt[0], y=mkpt[1], size=1) for mkpt in mkpts1 ]
-        cv2_mkpts2 = [ cv2.KeyPoint(x=mkpt[0], y=mkpt[1], size=1) for mkpt in mkpts2 ]
-        cv2_matches = [ cv2.DMatch(_imgIdx=batch_idx[i], _queryIdx=i, _trainIdx=i, _distance=1-mconf[i]) for i in range(len(mkpts1)) ]
-
-        return cv2_mkpts1, cv2_mkpts2, cv2_matches
+        mkpts0 = correspondences_dict["keypoints0"].cpu()
+        mkpts1 = correspondences_dict["keypoints1"].cpu()
+        scores = correspondences_dict.get("confidence", None)
+        out = {
+            "mkpts0": mkpts0,
+            "mkpts1": mkpts1,
+        }
+        if scores is not None:
+            out["scores"] = scores.cpu()
+        return out
