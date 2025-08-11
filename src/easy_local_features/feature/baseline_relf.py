@@ -4,7 +4,7 @@ import cv2, os
 
 from ..matching.nearest_neighbor import NearestNeighborMatcher
 from omegaconf import OmegaConf
-from .basemodel import BaseExtractor
+from .basemodel import BaseExtractor, MethodType
 from ..utils.download import getCache, downloadModel
 from ..utils import ops
 
@@ -48,6 +48,7 @@ available_models = [
 
 
 class RELF_baseline(BaseExtractor):
+    METHOD_TYPE = MethodType.DESCRIPTOR_ONLY
     ''''
     Model name:
      're_resnet': Rotation-Equivariant ResNet-18

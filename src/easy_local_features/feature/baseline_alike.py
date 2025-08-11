@@ -8,7 +8,7 @@ import wget
 
 from ..matching.nearest_neighbor import NearestNeighborMatcher
 from omegaconf import OmegaConf
-from .basemodel import BaseExtractor
+from .basemodel import BaseExtractor, MethodType
 from ..utils.download import downloadModel
 from ..utils import ops
 
@@ -31,6 +31,7 @@ configs = {
 }
 
 class ALIKE_baseline(BaseExtractor):
+    METHOD_TYPE = MethodType.DETECT_DESCRIBE
     """ALIKE baseline implementation.
     model_name: str = 'alike-t' | 'alike-s' | 'alike-n' | 'alike-l'
     top_k: int = -1. Detect top K keypoints. -1 for threshold based mode, >0 for top K mode. (default: -1)
@@ -104,7 +105,7 @@ class ALIKE_baseline(BaseExtractor):
         return self.detectAndCompute(img)[0]
 
     def compute(self, image, keypoints):
-        raise NotImplemented
+    raise NotImplementedError
 
     def to(self, device):
         self.model.to(device)

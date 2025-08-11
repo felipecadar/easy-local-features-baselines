@@ -5,7 +5,7 @@ import cv2, os, wget
 from easy_local_features.submodules.git_roma import romatch
 
 from omegaconf import OmegaConf
-from .basemodel import BaseExtractor
+from .basemodel import BaseExtractor, MethodType
 from ..utils import ops
 
 models = {'outdoor': romatch.models.roma_outdoor,
@@ -13,6 +13,7 @@ models = {'outdoor': romatch.models.roma_outdoor,
          'tiny_outdoor': romatch.models.tiny_roma_v1_outdoor}
 
 class RoMa_baseline(BaseExtractor):
+    METHOD_TYPE = MethodType.END2END_MATCHER
     default_conf = {
         'top_k': 512,
         'model': 'outdoor'

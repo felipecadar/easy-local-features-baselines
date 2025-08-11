@@ -6,7 +6,7 @@ import cv2, os, wget
 
 from ..matching.nearest_neighbor import NearestNeighborMatcher
 from omegaconf import OmegaConf
-from .basemodel import BaseExtractor
+from .basemodel import BaseExtractor, MethodType
 from ..utils import ops
 
 """PyTorch implementation of the SuperPoint model,
@@ -263,6 +263,7 @@ class OpenSPModel(nn.Module):
 
 
 class SuperPoint_baseline(BaseExtractor):
+    METHOD_TYPE = MethodType.DETECT_DESCRIBE
     default_conf = {
         "top_k": 2048,
         "nms_radius": 4,

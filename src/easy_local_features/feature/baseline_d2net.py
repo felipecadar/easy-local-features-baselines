@@ -7,13 +7,14 @@ import scipy
 
 from easy_local_features.submodules.git_d2net.models import D2Net, preprocess_image, process_multiscale
 from ..utils import ops
-from .basemodel import BaseExtractor
+from .basemodel import BaseExtractor, MethodType
 from ..utils.download import downloadModel
 from ..matching.nearest_neighbor import NearestNeighborMatcher
 
 from omegaconf import OmegaConf
 
 class D2Net_baseline(BaseExtractor):
+    METHOD_TYPE = MethodType.DETECT_DESCRIBE
     
     default_conf = {
         'top_k': 2048,
@@ -45,10 +46,10 @@ class D2Net_baseline(BaseExtractor):
         self.matcher = NearestNeighborMatcher()
 
     def compute(self, img, cv_kps):
-        raise NotImplemented
+        raise NotImplementedError
 
     def detect(self, img, op=None):
-        raise NotImplemented
+        raise NotImplementedError
 
     def detectAndCompute(self, image, return_dict=False):
         image = ops.prepareImage(image)

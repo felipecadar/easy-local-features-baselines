@@ -4,7 +4,7 @@ import cv2, os
 
 from ..matching.nearest_neighbor import NearestNeighborMatcher
 from omegaconf import OmegaConf
-from .basemodel import BaseExtractor
+from .basemodel import BaseExtractor, MethodType
 from ..utils.download import downloadModel
 from ..utils import ops
 
@@ -14,6 +14,7 @@ weights_link = 'https://github.com/feixue94/sfd2/raw/dev/weights/20220810_resseg
 
 
 class SFD2_baseline(BaseExtractor):
+    METHOD_TYPE = MethodType.DETECT_DESCRIBE
     default_conf = {
         'top_k': 2048,
         "model_name":"ressegnetv2", # "ressegnetv2", "ressegnet"

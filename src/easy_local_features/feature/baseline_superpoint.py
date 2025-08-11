@@ -1,6 +1,6 @@
 from ..matching.nearest_neighbor import NearestNeighborMatcher
 from omegaconf import OmegaConf
-from .basemodel import BaseExtractor
+from .basemodel import BaseExtractor, MethodType
 from ..utils.download import downloadModel
 from ..utils import ops
 
@@ -351,6 +351,7 @@ class Net(nn.Module):
     
 
 class SuperPoint_baseline(BaseExtractor):
+    METHOD_TYPE = MethodType.DETECT_DESCRIBE
     default_conf = {
         "top_k": -1,
         "sparse_outputs": True,

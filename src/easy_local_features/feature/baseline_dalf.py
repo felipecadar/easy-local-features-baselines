@@ -23,7 +23,7 @@ import os
 
 from ..matching.nearest_neighbor import NearestNeighborMatcher
 from omegaconf import OmegaConf
-from .basemodel import BaseExtractor
+from .basemodel import BaseExtractor, MethodType
 from ..utils.download import downloadModel
 from ..utils import ops
 
@@ -82,6 +82,7 @@ def tps(theta, ctrl, grid):
     return z
 
 class DALF_baseline(BaseExtractor):
+  METHOD_TYPE = MethodType.DETECT_DESCRIBE
     """
     Class for extracting local features (keypoints and descriptors) using the DALF method.
 

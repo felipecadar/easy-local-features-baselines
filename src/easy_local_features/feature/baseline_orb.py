@@ -4,7 +4,7 @@ import cv2, os
 
 from ..matching.nearest_neighbor import NearestNeighborMatcher
 from omegaconf import OmegaConf
-from .basemodel import BaseExtractor
+from .basemodel import BaseExtractor, MethodType
 from ..utils.download import downloadModel
 from ..utils import ops
 
@@ -13,6 +13,7 @@ from ..submodules.git_sfd2.sfd2 import SFD2
 weights_link = 'https://github.com/feixue94/sfd2/raw/dev/weights/20220810_ressegnetv2_wapv2_ce_sd2mfsf_uspg.pth'
 
 class ORB_baseline(BaseExtractor):
+    METHOD_TYPE = MethodType.DETECT_DESCRIBE
     default_conf = {
         'top_k': 2048,
         "scaleFactor": 1.2,

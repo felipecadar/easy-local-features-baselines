@@ -8,10 +8,11 @@ from kornia.feature.tfeat import TFeat
 
 from ..matching.nearest_neighbor import NearestNeighborMatcher
 from omegaconf import OmegaConf
-from .basemodel import BaseExtractor
+from .basemodel import BaseExtractor, MethodType
 from ..utils import ops
 
 class XFeat_baseline(BaseExtractor):
+    METHOD_TYPE = MethodType.DETECT_DESCRIBE
     default_conf = {
         'top_k': 2048,
         'detection_threshold': 0.2,

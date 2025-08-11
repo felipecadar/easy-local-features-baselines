@@ -3,11 +3,12 @@ import tensorflow_hub as hub
 
 from ..matching.nearest_neighbor import NearestNeighborMatcher
 from omegaconf import OmegaConf
-from .basemodel import BaseExtractor
+from .basemodel import BaseExtractor, MethodType
 from ..utils import ops
 
 import torch
 class DELF_baseline(BaseExtractor):
+    METHOD_TYPE = MethodType.DETECT_DESCRIBE
     default_config = {
         "top_k": 2048,
     }

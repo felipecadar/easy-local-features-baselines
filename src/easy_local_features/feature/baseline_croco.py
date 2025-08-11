@@ -3,31 +3,37 @@ import torch.nn.functional as F
 
 from ..matching.nearest_neighbor import NearestNeighborMatcher
 from omegaconf import OmegaConf
-from .basemodel import BaseExtractor
-from ..utils import ops
+from .basemodel import BaseExtractor, MethodType
+from ..utils import ops, io, download
 
-class DINOv2_baseline(BaseExtractor):
+from ..submodules.git_croco.croco import CroCoNet
+
+BASE_LINK = "https://download.europe.naverlabs.com/ComputerVision/CroCo/" # model.pth
+
+class CroCo_baseline(BaseExtractor):
+    METHOD_TYPE = MethodType.DESCRIPTOR_ONLY
     available_weights = [
-        'dinov2_vits14',
-        'dinov2_vitb14',
-        'dinov2_vitl14',
-        'dinov2_vitg14',
-        'dinov2_vits14_reg',
-        'dinov2_vitb14_reg',
-        'dinov2_vitl14_reg',
-        'dinov2_vitg14_reg',
+        'CroCo',
+        'CroCo_V2_ViTBase_SmallDecoder',
+        'CroCo_V2_ViTBase_BaseDecoder',
+        'CroCo_V2_ViTLarge_BaseDecoder',
     ]
         
-    default_conf = {"weights": "dinov2_vits14", "allow_resize": True}
+    default_conf = {"weights": "CroCo", "allow_resize": True}
     
     def __init__(self, conf={}):
         self.conf = conf = OmegaConf.merge(OmegaConf.create(self.default_conf), conf)
         self.device   = torch.device('cpu')
         self.matcher = NearestNeighborMatcher()
-        try:
-            self.model = torch.hub.load("facebookresearch/dinov2", conf.weights)
-        except:
-            self.model = torch.hub.load("facebookresearch/dinov2", conf.weights, force_reload=True)
+        
+        
+        # load model 
+        ckpt_link = BASE_LINK + conf.weights + ".pth"
+        ckpt_path = download.downloadModel('croco', conf.weights, ckpt_link)
+        ckpt = torch.load(ckpt_path, map_location='cpu')
+        self.model = CroCoNet( **ckpt.get('croco_kwargs',{})).to(self.device)
+        self.model.eval()
+        self.model.load_state_dict(ckpt['model'], strict=True)
 
     def sample_features(self, keypoints, features, s=14, mode="bilinear"):
         if s is None:

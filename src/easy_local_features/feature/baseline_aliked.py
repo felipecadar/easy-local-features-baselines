@@ -1,6 +1,6 @@
 import sys, os
 from easy_local_features.submodules.git_aliked.aliked import ALIKED
-from .basemodel import BaseExtractor
+from .basemodel import BaseExtractor, MethodType
 from ..matching.nearest_neighbor import NearestNeighborMatcher
 from ..utils import download, ops
 import torch
@@ -12,6 +12,7 @@ from omegaconf import OmegaConf
 
 
 class ALIKED_baseline(BaseExtractor):
+    METHOD_TYPE = MethodType.DETECT_DESCRIBE
     """ALIKED baseline implementation.
         model_name: str = 'aliked-n32', Choose from ['aliked-t16', 'aliked-n16', 'aliked-n16rot', 'aliked-n32']
         top_k: int = -1, # -1 for threshold based mode, >0 for top K mode.

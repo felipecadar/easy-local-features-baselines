@@ -6,7 +6,7 @@ import torchvision
 
 from ..matching.nearest_neighbor import NearestNeighborMatcher
 from omegaconf import OmegaConf
-from .basemodel import BaseExtractor
+from .basemodel import BaseExtractor, MethodType
 from ..utils import ops
 
 # resnet forward
@@ -28,6 +28,7 @@ from ..utils import ops
 
 
 class ResNet_baseline(BaseExtractor):
+    METHOD_TYPE = MethodType.DESCRIPTOR_ONLY
     available_models = [
         'resnet18',
         'resnet34',
@@ -90,10 +91,10 @@ class ResNet_baseline(BaseExtractor):
         return features
 
     def detectAndCompute(self, img, return_dict=None):
-        raise NotImplemented
+        raise NotImplementedError
     
     def detect(self, img, op=None):
-        raise NotImplemented
+        raise NotImplementedError
 
     def compute(self, img, keypoints=None, return_dict=False, stop=4):
         img = ops.prepareImage(img, imagenet=True).to(self.device)
