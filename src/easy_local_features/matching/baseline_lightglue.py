@@ -113,6 +113,10 @@ class LightGlue_baseline(BaseExtractor):
         mkpts1 = keypoints1[0, matches[:, 1]]
 
         return {
+            "keypoints0": keypoints0,
+            "keypoints1": keypoints1,
+            "descriptors0": descriptors0,
+            "descriptors1": descriptors1,
             "matches": matches,
             "scores": mscores,
             "mkpts0": mkpts0,
