@@ -1,6 +1,6 @@
 [project]
 name = "easy-local-features"
-version = "0.8.0"
+version = "0.8.3"
 description = "Add your description here"
 readme = "README.md"
 authors = [
@@ -9,21 +9,21 @@ authors = [
 requires-python = ">=3.9"
 dependencies = [
     "e2cnn>=0.2.3",
-    "easydict>=1.13",
-    "einops>=0.8.1",
     "kornia-moons>=0.2.9",
     "kornia-rs>=0.1.9",
-    "numpy>=2.0.2",
-    "omegaconf>=2.3.0",
-    "opencv-python>=4.12.0.88",
-    "scipy>=1.13.1",
-    "tensorflow>=2.19.0",
-    "tensorflow-hub>=0.16.1",
-    "torch>=1.9.1",
-    "torchvision>=0.9.1",
-    "tqdm>=4.67.1",
-    "wget>=3.2",
-    "yacs>=0.1.8",
+    "easydict",
+    "einops",
+    "numpy",
+    "omegaconf",
+    "opencv-python",
+    "scipy",
+    "tensorflow",
+    "tensorflow-hub",
+    "torch",
+    "torchvision",
+    "tqdm",
+    "wget",
+    "yacs",
 ]
 
 [project.scripts]
