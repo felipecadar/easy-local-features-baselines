@@ -26,7 +26,6 @@ conda activate elf
 Now we can install everything.
 
 ```bash
-pip install -r requirements.txt
 pip install -e .
 ```
 

@@ -2,8 +2,8 @@ from matplotlib.patches import ConnectionPatch
 import matplotlib.pyplot as plt
 import numpy as np
 import torch
-import cv2
 import torchvision
+import os
 
 from .ops import to_cv, sort_keypoints
 
@@ -183,6 +183,8 @@ def show():
     plt.show()
     
 def save(path):
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    
     plt.tight_layout()
     plt.savefig(path)
     plt.close()

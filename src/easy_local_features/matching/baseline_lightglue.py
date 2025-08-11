@@ -89,18 +89,17 @@ class LightGlue_baseline(BaseExtractor):
         keypoints1 = data["keypoints1"]
         descriptors0 = data["descriptors0"]
         descriptors1 = data["descriptors1"]
-        
-        # match
+
         input = {
             "image0": {
                 "keypoints": keypoints0,
                 "descriptors": descriptors0,
-                "image_size": torch.tensor(ops.prepareImage(data["image0"]).shape[-2:]).unsqueeze(0),
+                "image": data["image0"] if isinstance(data["image0"], torch.Tensor) else ops.prepareImage(data["image0"]),
             },
             "image1": {
                 "keypoints": keypoints1,
                 "descriptors": descriptors1,
-                "image_size": torch.tensor(ops.prepareImage(data["image1"]).shape[-2:]).unsqueeze(0),
+                "image": data["image1"] if isinstance(data["image1"], torch.Tensor) else ops.prepareImage(data["image1"]),
             },
         }
         
@@ -122,5 +121,7 @@ class LightGlue_baseline(BaseExtractor):
     
     def to(self, device):
         self.matcher = self.matcher.to(device)
+        if self._extractor is not None:
+            self._extractor.to(device)
         self.device = device
         return self
