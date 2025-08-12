@@ -1,5 +1,6 @@
 from abc import ABC, abstractmethod
 from typing import Optional
+import torch
 
 
 class MethodType:
@@ -69,6 +70,7 @@ class BaseExtractor(ABC):
         self.detectAndCompute = detectAndCompute
     
     # @abstractmethod
+    @torch.inference_mode()
     def match(self, image1, image2):
         """Match two images using this method's extractor and matcher.
 
@@ -90,7 +92,7 @@ class BaseExtractor(ABC):
                 raise RuntimeError(
                     "No matcher set on extractor and failed to create default NearestNeighborMatcher."
                 ) from e
-
+        # Run feature extraction without gradients
         kp0, desc0 = self.detectAndCompute(image1)
         kp1, desc1 = self.detectAndCompute(image2)
 
@@ -106,6 +108,9 @@ class BaseExtractor(ABC):
 
         mkpts0 = kp0[0, valid]
         mkpts1 = kp1[0, m0[valid]]
+        # Ensure keypoints are detached and on CPU
+        mkpts0 = mkpts0.detach().cpu()
+        mkpts1 = mkpts1.detach().cpu()
 
         out = {
             "mkpts0": mkpts0,

@@ -99,14 +99,19 @@ class SuperGlue_baseline():
 
         with torch.no_grad():
             res = self.model(inp)
-
-        matches0 = res['matches0'][0].to(self.CPU).numpy()
-        matches1 = res['matches1'][0].to(self.CPU).numpy()
-        matching_scores0 = res['matching_scores0'][0].to(self.CPU).numpy()
-        matching_scores1 = res['matching_scores1'][0].to(self.CPU).numpy()
+        # Move to CPU and detach before converting
+        matches0 = res['matches0'][0].detach().cpu().numpy()
+        matches1 = res['matches1'][0].detach().cpu().numpy()
+        matching_scores0 = res['matching_scores0'][0].detach().cpu().numpy()
+        matching_scores1 = res['matching_scores1'][0].detach().cpu().numpy()
 
         matching_scores0[matching_scores0 == 0] = 1e-9
         matching_scores1[matching_scores1 == 0] = 1e-9
+
+        # Derive matched keypoints (torch tensors detached to CPU then converted to numpy)
+        valid = matches0 > -1
+        mkpts0 = keypoints0[0, valid].detach().cpu().numpy()
+        mkpts1 = keypoints1[0, matches0[valid]].detach().cpu().numpy()
 
         # Return raw arrays for downstream conversion; higher-level adapters can build cv2 matches if desired.
         return {
@@ -114,4 +119,6 @@ class SuperGlue_baseline():
             "matches1": matches1,
             "matching_scores0": matching_scores0,
             "matching_scores1": matching_scores1,
+            "mkpts0": mkpts0,
+            "mkpts1": mkpts1,
         }

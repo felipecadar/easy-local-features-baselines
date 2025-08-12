@@ -111,16 +111,16 @@ class LightGlue_baseline(BaseExtractor):
 
         mkpts0 = keypoints0[0, matches[:, 0]]
         mkpts1 = keypoints1[0, matches[:, 1]]
-
+        # Ensure keypoints and matches are detached and on CPU for output
         return {
-            "keypoints0": keypoints0,
-            "keypoints1": keypoints1,
-            "descriptors0": descriptors0,
-            "descriptors1": descriptors1,
-            "matches": matches,
-            "scores": mscores,
-            "mkpts0": mkpts0,
-            "mkpts1": mkpts1,
+            "keypoints0": keypoints0.detach().cpu(),
+            "keypoints1": keypoints1.detach().cpu(),
+            "descriptors0": descriptors0.detach().cpu() if isinstance(descriptors0, torch.Tensor) else descriptors0,
+            "descriptors1": descriptors1.detach().cpu() if isinstance(descriptors1, torch.Tensor) else descriptors1,
+            "matches": matches.detach().cpu(),
+            "scores": mscores.detach().cpu(),
+            "mkpts0": mkpts0.detach().cpu(),
+            "mkpts1": mkpts1.detach().cpu(),
         }
     
     def to(self, device):

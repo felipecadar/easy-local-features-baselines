@@ -83,8 +83,8 @@ class RoMa_baseline(BaseExtractor):
         matches, certs = self.model.sample(warp, certainty, num=self.num_keypoints)
 
         kptsA, kptsB = self.model.to_pixel_coordinates(matches, imA_h, imA_w, imB_h, imB_w)
-
+        # Ensure keypoints are detached and on CPU
         return {
-            'mkpts0': kptsA,
-            'mkpts1': kptsB,
+            'mkpts0': kptsA.detach().cpu() if isinstance(kptsA, torch.Tensor) else kptsA,
+            'mkpts1': kptsB.detach().cpu() if isinstance(kptsB, torch.Tensor) else kptsB,
         }    

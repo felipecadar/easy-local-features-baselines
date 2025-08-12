@@ -60,9 +60,12 @@ class DeDoDe_baseline(BaseExtractor):
     
     def __init__(self, conf={}):
         self.conf = conf = OmegaConf.merge(OmegaConf.create(self.default_conf), conf)
-         
-        self.DEV   = torch.device('cpu')
-        self.model = DeDoDe.from_pretrained(detector_weights=conf.detector_weights, descriptor_weights=conf.descriptor_weights)
+        self.DEV = torch.device('cpu')
+        self.model = DeDoDe.from_pretrained(
+            detector_weights=conf.detector_weights,
+            descriptor_weights=conf.descriptor_weights,
+        )
+        self.model.eval()
         self.matcher = DualSoftMaxMatcher()
         self.top_kps = conf.top_k
 
@@ -88,19 +91,20 @@ class DeDoDe_baseline(BaseExtractor):
     def to(self, device):
         self.model.to(device)
         self.DEV = device
-
+        self.model.eval()
+    @torch.inference_mode()
     def match(self, image1, image2):
         kp0, desc0 = self.detectAndCompute(image1)
         kp1, desc1 = self.detectAndCompute(image2)
-        
-        matches_A, matches_B, batch_ids = self.matcher(kp0, desc0, kp1, desc1, normalize = True, inv_temp=20, threshold = 0.1)
 
+        matches_A, matches_B, batch_ids = self.matcher(kp0, desc0, kp1, desc1, normalize=True, inv_temp=20, threshold=0.1)
+
+        # Ensure keypoints are detached and on CPU
         return {
-            'mkpts0': matches_A,
-            'mkpts1': matches_B,
-            'batch_ids': batch_ids,
+            'mkpts0': matches_A.detach().cpu(),
+            'mkpts1': matches_B.detach().cpu(),
+            'batch_ids': batch_ids.detach().cpu() if isinstance(batch_ids, torch.Tensor) else batch_ids,
         }
-        
     @property
     def has_detector(self):
         return True

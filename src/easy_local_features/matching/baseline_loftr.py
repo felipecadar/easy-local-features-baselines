@@ -50,13 +50,13 @@ class LoFTR_baseline:
         input = {"image0": img1, "image1": img2}
         correspondences_dict = self.matcher(input)
 
-        mkpts0 = correspondences_dict["keypoints0"].cpu()
-        mkpts1 = correspondences_dict["keypoints1"].cpu()
+        mkpts0 = correspondences_dict["keypoints0"].detach().cpu()
+        mkpts1 = correspondences_dict["keypoints1"].detach().cpu()
         scores = correspondences_dict.get("confidence", None)
         out = {
             "mkpts0": mkpts0,
             "mkpts1": mkpts1,
         }
         if scores is not None:
-            out["scores"] = scores.cpu()
+            out["scores"] = scores.detach().cpu()
         return out

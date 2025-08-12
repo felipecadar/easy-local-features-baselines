@@ -41,7 +41,7 @@ def test_feature_extractors(extractor_name):
     image0 = ops.resize_short_edge(image0, 320)[0]
     image1 = ops.resize_short_edge(image1, 320)[0]
     
-    os.makedirs("test/results", exist_ok=True)
+    os.makedirs("tests/results", exist_ok=True)
     extractor = getExtractor(extractor_name, {'top_k': 4096})
     
     if not extractor.has_detector:
@@ -59,7 +59,7 @@ def test_feature_extractors(extractor_name):
     vis.plot_pair(image0, image1, title=extractor_name, figsize=(8, 4))
     vis.plot_matches(matches['mkpts0'], matches['mkpts1'])
     vis.add_text(f"Matches: {len(matches['mkpts0'])}")
-    vis.save(f"test/results/{extractor_name}.png")
+    vis.save(f"tests/results/{extractor_name}.png")
     
 @pytest.mark.parametrize("extractor_name", available_extractors)
 def test_cpu(extractor_name):
