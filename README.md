@@ -2,7 +2,13 @@
 
 Just some scripts to make things easier for the local features baselines.
 
-<div style="color:red;">WARNING: PLEASE check the license of your desired baseline before using this code.</div>
+> ⚠️ **CRITICAL LICENSE DISCLAIMER**
+>
+> This repository aggregates wrappers around MANY third‑party local feature extractors and matchers. **Each baseline/model keeps its OWN original license (BSD, MIT, Apache 2.0, GPLv3, Non‑Commercial, CC BY‑NC‑SA, custom research licenses, etc.)**. Your rights for a given baseline are governed *only* by that baseline’s upstream license. Some components here are **non‑commercial only** (e.g., SuperGlue, original SuperPoint, R2D2) or **copyleft** (e.g., DISK under GPLv3). Others are permissive (BSD/MIT/Apache 2.0). Before any research publication, internal deployment, redistribution, or commercial/production use, **YOU MUST review and comply with every relevant upstream license, including attribution, notice reproduction, share‑alike, copyleft, and patent clauses.**
+>
+> The maintainers provide NO warranty, NO guarantee of license correctness, and accept NO liability for misuse. This notice and any summaries are **not legal advice**. If in doubt, consult qualified counsel.
+>
+> See: [`LICENSES.md`](LICENSES.md) for an overview and links to included full license texts.
 
 # Installation
 
