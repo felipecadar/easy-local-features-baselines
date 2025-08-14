@@ -94,7 +94,6 @@ class BaseExtractor(ABC):
         # Run feature extraction without gradients
         kp0, desc0 = self.detectAndCompute(image1)
         kp1, desc1 = self.detectAndCompute(image2)
-
         data = {
             "descriptors0": desc0,
             "descriptors1": desc1,
@@ -104,6 +103,11 @@ class BaseExtractor(ABC):
 
         m0 = response["matches0"][0]
         valid = m0 > -1
+        # Ensure indices/masks live on the same device as keypoints before indexing
+        kp_device = kp0.device
+        if m0.device != kp_device:
+            m0 = m0.to(kp_device)
+            valid = valid.to(kp_device)
 
         mkpts0 = kp0[0, valid]
         mkpts1 = kp1[0, m0[valid]]

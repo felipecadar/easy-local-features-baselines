@@ -9,6 +9,7 @@ Just some scripts to make things easier for the local features baselines.
 > The maintainers provide NO warranty, NO guarantee of license correctness, and accept NO liability for misuse. This notice and any summaries are **not legal advice**. If in doubt, consult qualified counsel.
 >
 > See: [`LICENSES.md`](LICENSES.md) for an overview and links to included full license texts.
+> Built with DINOv3.
 
 # Installation
 
