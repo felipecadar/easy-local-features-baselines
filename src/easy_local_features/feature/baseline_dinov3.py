@@ -17,6 +17,8 @@ then bilinearly interpolates at provided keypoints.
 """
 
 import sys
+from pathlib import Path
+import tempfile
 import torch
 import torch.nn.functional as F
 
@@ -76,6 +78,9 @@ class DINOv3_baseline(BaseExtractor):
         # Patch/stride size heuristic based on ViT-*/16 variants; used for grid sampling.
         self.vit_size = 16 if "16" in conf.weights else 14
 
+        # Try to prepare a local weights path (auto-download for supported variants).
+        self._maybe_prepare_weights()
+
         # Try to load the model. Prefer hub unless explicitly told to use local.
         self.model = None
         if conf.get("source") == "local" and conf.get("repo_dir"):
@@ -105,9 +110,20 @@ class DINOv3_baseline(BaseExtractor):
                         "facebookresearch/dinov3", conf.weights, force_reload=True, weights=conf.get("weights_path")
                     )
                 else:
-                    self.model = torch.hub.load(
-                        "facebookresearch/dinov3", conf.weights, force_reload=True
-                    )
+                    try:
+                        self.model = torch.hub.load(
+                            "facebookresearch/dinov3", conf.weights, force_reload=True
+                        )
+                    except Exception as e:
+                        raise RuntimeError(
+                            (
+                                "Failed to load DINOv3 model. If you're using a variant without an auto-downloadable "
+                                "GitHub weight, please either: (1) provide 'weights_path' to a local .pth file, or (2) "
+                                "let torch.hub download the official weights by ensuring internet access.\n"
+                                "For manual download instructions see: https://github.com/facebookresearch/dinov3\n"
+                                f"Details: {e}"
+                            )
+                        )
 
         self.model.eval()
 
@@ -209,6 +225,77 @@ class DINOv3_baseline(BaseExtractor):
     def has_detector(self):
         return False
 
+    # ---- Internal helpers for weight resolution and auto-download ----
+    @staticmethod
+    def _github_release_base_url():
+        # All assets hosted under the repo release tag 'dinov3'
+        return (
+            "https://github.com/felipecadar/easy-local-features-baselines/releases/download/dinov3/"
+        )
+
+    @staticmethod
+    def _github_variant_to_filename():
+        # Variants we auto-download from the project's GitHub release.
+        # Keys are the torch.hub model names used in conf['weights'].
+        return {
+            # ViT family
+            "dinov3_vits16": "dinov3_vits16_pretrain_lvd1689m-08c60483.pth",
+            "dinov3_vits16plus": "dinov3_vits16plus_pretrain_lvd1689m-4057cbaa.pth",
+            "dinov3_vitb16": "dinov3_vitb16_pretrain_lvd1689m-73cec8be.pth",
+            "dinov3_vitl16": "dinov3_vitl16_pretrain_lvd1689m-8aa4cbdd.pth",
+            "dinov3_vith16plus": "dinov3_vith16plus_pretrain_lvd1689m-7c1da9a5.pth",
+            "dinov3_vit7b16": "dinov3_vit7b16_pretrain_lvd1689m-a955f4ea.pth",
+            # Satellite ViT weights
+            "dinov3_sat_vitl16": "dinov3_vitl16_pretrain_sat493m-eadcf0ff.pth",
+            "dinov3_sat_vit7b16": "dinov3_vit7b16_pretrain_sat493m-a6675841.pth",
+            # ConvNeXt family (note: compute() currently only supports ViT backbones)
+            "dinov3_convnext_tiny": "dinov3_convnext_tiny_pretrain_lvd1689m-21b726bb.pth",
+            "dinov3_convnext_small": "dinov3_convnext_small_pretrain_lvd1689m-296db49d.pth",
+            "dinov3_convnext_base": "dinov3_convnext_base_pretrain_lvd1689m-801f2ba9.pth",
+            "dinov3_convnext_large": "dinov3_convnext_large_pretrain_lvd1689m-61fa432d.pth",
+        }
+
+    def _maybe_prepare_weights(self):
+        """If no weights_path is provided, try to auto-resolve/download from our GitHub release
+        for supported variants. Files are saved under a temporary folder on this system.
+        """
+        conf = self.conf
+        if conf.get("weights_path"):
+            return  # user provided explicit path
+
+        variant = conf.get("weights")
+        gh_map = self._github_variant_to_filename()
+        if variant not in gh_map:
+            # Not one of our GitHub-hosted assets; we'll rely on torch.hub (Facebook) below.
+            return
+
+        filename = gh_map[variant]
+        # Save under system temporary directory
+        tmp_base = Path(tempfile.gettempdir()) / "easy_local_features" / "dinov3"
+        weights_dir = tmp_base
+        weights_dir.mkdir(parents=True, exist_ok=True)
+        target_path = weights_dir / filename
+
+        if not target_path.exists():
+            url = self._github_release_base_url() + filename
+            try:
+                print(f"Auto-downloading DINOv3 weights for '{variant}' from: {url}")
+                torch.hub.download_url_to_file(url, str(target_path))
+            except Exception as e:
+                raise FileNotFoundError(
+                    (
+                        f"Couldn't download weights for '{variant}' to {target_path}.\n"
+                        f"Tried URL: {url}\n"
+                        "You may: (1) provide 'weights_path' pointing to a local .pth file, or (2) use the official\n"
+                        "Facebook weights via torch.hub (internet required). See:\n"
+                        "https://github.com/facebookresearch/dinov3\n"
+                        f"Details: {e}"
+                    )
+                )
+
+        # Use the local file we ensured above
+        conf["weights_path"] = str(target_path)
+
 
 if __name__ == "__main__":
     # Minimal smoke test: use SuperPoint to detect and DINOv3 to compute descriptors.
@@ -235,8 +322,7 @@ if __name__ == "__main__":
     # For convenience we fall back to remote hub here:
     method = DINOv3_baseline(
         {
-            "weights": "dinov3_vits16",
-            "weights_path": "dino_weights/dinov3_vits16_pretrain_lvd1689m-08c60483.pth",
+            "weights": "dinov3_vitb16",
         }
     )
     detector = SuperPoint_baseline(
