@@ -27,7 +27,7 @@ class DAD_baseline(BaseExtractor):
     def detectAndCompute(self, img, return_dict=None):
         raise NotImplementedError("detectAndCompute is not implemented for DAD_baseline")
 
-    def compute(self, image, keypoints):
+    def compute(self, image, cv_kps):
         raise NotImplementedError("compute is not implemented for DAD_baseline")
 
     @property
@@ -44,8 +44,8 @@ if __name__ == "__main__":
 
     detector = DAD_baseline({"num_keypoints": 512})
 
-    img0 = io.fromPath("test/assets/megadepth0.jpg")
-    img1 = io.fromPath("test/assets/megadepth1.jpg")
+    img0 = io.fromPath("../tests/assets/megadepth0.jpg")
+    img1 = io.fromPath("../tests/assets/megadepth1.jpg")
 
     kps0 = detector.detect(img0)
     kps1 = detector.detect(img1)
