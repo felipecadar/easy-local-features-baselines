@@ -27,24 +27,6 @@ def load_detector_by_name(detector_name, *, resize=1024, weights_path=None):
         detector = load_DaDDark(resize=resize, weights_path=weights_path)
     elif detector_name == "DeDoDe-v2":
         detector = load_dedode_v2()
-    elif detector_name in lg_detectors:
-        from .third_party import lightglue, LightGlueDetector
-
-        detector = LightGlueDetector(
-            getattr(lightglue, detector_name), detection_threshold=0, resize=resize
-        )
-    elif detector_name == "HesAff":
-        from .third_party import HesAff
-
-        detector = HesAff()
-    elif detector_name == "HarrisAff":
-        from .third_party import HarrisAff
-
-        detector = HarrisAff()
-    elif detector_name == "REKD":
-        from .third_party import load_REKD
-
-        detector = load_REKD(resize=resize)
     else:
         raise ValueError(f"Couldn't find detector with detector name {detector_name}")
     return detector
