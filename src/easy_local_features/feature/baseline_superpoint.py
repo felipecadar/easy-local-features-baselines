@@ -1,10 +1,10 @@
-from ..matching.nearest_neighbor import NearestNeighborMatcher
-from omegaconf import OmegaConf
-from .basemodel import BaseExtractor, MethodType
-from ..utils.download import downloadModel
-from ..utils import ops
-
 from typing import Optional
+
+from omegaconf import OmegaConf
+
+from ..matching.nearest_neighbor import NearestNeighborMatcher
+from ..utils import ops
+from .basemodel import BaseExtractor, MethodType
 
 """
 # %BANNER_BEGIN%
@@ -61,6 +61,7 @@ Adapted by Philipp Lindenberger (Phil26AT)
 import torch
 from torch import nn
 
+
 def pad_to_length(
     x,
     length: int,
@@ -114,6 +115,7 @@ def pad_and_stack(
     y = torch.stack([pad_to_length(x, length, pad_dim, **kwargs) for x in sequences], 0)
     return y
 
+
 def simple_nms(scores, radius):
     """Perform non maximum suppression on the heatmap using max-pooling.
     This method does not suppress contiguous points that have the same score.
@@ -123,9 +125,7 @@ def simple_nms(scores, radius):
     """
 
     def max_pool(x):
-        return torch.nn.functional.max_pool2d(
-            x, kernel_size=radius * 2 + 1, stride=1, padding=radius
-        )
+        return torch.nn.functional.max_pool2d(x, kernel_size=radius * 2 + 1, stride=1, padding=radius)
 
     zeros = torch.zeros_like(scores)
     max_mask = scores == max_pool(scores)
@@ -153,15 +153,11 @@ def sample_k_keypoints(keypoints, scores, k):
 
 def soft_argmax_refinement(keypoints, scores, radius: int):
     width = 2 * radius + 1
-    sum_ = torch.nn.functional.avg_pool2d(
-        scores[:, None], width, 1, radius, divisor_override=1
-    )
+    sum_ = torch.nn.functional.avg_pool2d(scores[:, None], width, 1, radius, divisor_override=1)
     ar = torch.arange(-radius, radius + 1).to(scores)
     kernel_x = ar[None].expand(width, -1)[None, None]
     dx = torch.nn.functional.conv2d(scores[:, None], kernel_x, padding=radius)
-    dy = torch.nn.functional.conv2d(
-        scores[:, None], kernel_x.transpose(2, 3), padding=radius
-    )
+    dy = torch.nn.functional.conv2d(scores[:, None], kernel_x.transpose(2, 3), padding=radius)
     dydx = torch.stack([dy[:, 0], dx[:, 0]], -1) / sum_[:, 0, :, :, None]
     refined_keypoints = []
     for i, kpts in enumerate(keypoints):
@@ -176,17 +172,11 @@ def sample_descriptors(keypoints, descriptors, s):
     keypoints = keypoints - s / 2 + 0.5
     keypoints /= torch.tensor(
         [(w * s - s / 2 - 0.5), (h * s - s / 2 - 0.5)],
-    ).to(
-        keypoints
-    )[None]
+    ).to(keypoints)[None]
     keypoints = keypoints * 2 - 1  # normalize to (-1, 1)
     args = {"align_corners": True} if torch.__version__ >= "1.3" else {}
-    descriptors = torch.nn.functional.grid_sample(
-        descriptors, keypoints.view(b, 1, -1, 2), mode="bilinear", **args
-    )
-    descriptors = torch.nn.functional.normalize(
-        descriptors.reshape(b, c, -1), p=2, dim=1
-    )
+    descriptors = torch.nn.functional.grid_sample(descriptors, keypoints.view(b, 1, -1, 2), mode="bilinear", **args)
+    descriptors = torch.nn.functional.normalize(descriptors.reshape(b, c, -1), p=2, dim=1)
     return descriptors
 
 
@@ -200,10 +190,9 @@ def sample_descriptors_fix_sampling(keypoints, descriptors, s: int = 8):
     descriptors = torch.nn.functional.grid_sample(
         descriptors, keypoints.view(b, 1, -1, 2), mode="bilinear", align_corners=False
     )
-    descriptors = torch.nn.functional.normalize(
-        descriptors.reshape(b, c, -1), p=2, dim=1
-    )
+    descriptors = torch.nn.functional.normalize(descriptors.reshape(b, c, -1), p=2, dim=1)
     return descriptors
+
 
 class Net(nn.Module):
     def __init__(self, conf):
@@ -227,10 +216,8 @@ class Net(nn.Module):
         self.convPb = nn.Conv2d(c5, 65, kernel_size=1, stride=1, padding=0)
 
         self.convDa = nn.Conv2d(c4, c5, kernel_size=3, stride=1, padding=1)
-        self.convDb = nn.Conv2d(
-            c5, descriptor_dim, kernel_size=1, stride=1, padding=0
-        )
-    
+        self.convDb = nn.Conv2d(c5, descriptor_dim, kernel_size=1, stride=1, padding=0)
+
     def forward(self, data, dense_outputs=False):
         image = data["image"]
         if image.shape[1] == 3:  # RGB
@@ -251,7 +238,7 @@ class Net(nn.Module):
         x = self.relu(self.conv4b(x))
 
         pred = {}
-        
+
         # Compute the dense keypoint scores
         cPa = self.relu(self.convPa(x))
         scores = self.convPb(cPa)
@@ -288,9 +275,7 @@ class Net(nn.Module):
             scores = scores[best_kp]
 
             # Separate into batches
-            keypoints = [
-                torch.stack(best_kp[1:3], dim=-1)[best_kp[0] == i] for i in range(b)
-            ]
+            keypoints = [torch.stack(best_kp[1:3], dim=-1)[best_kp[0] == i] for i in range(b)]
             scores = [scores[best_kp[0] == i] for i in range(b)]
 
             # Keep the k keypoints with highest score
@@ -298,20 +283,11 @@ class Net(nn.Module):
 
             # Keep the k keypoints with highest score
             if max_kps > 0:
-                keypoints, scores = list(
-                    zip(
-                        *[
-                            top_k_keypoints(k, s, max_kps)
-                            for k, s in zip(keypoints, scores)
-                        ]
-                    )
-                )
+                keypoints, scores = list(zip(*[top_k_keypoints(k, s, max_kps) for k, s in zip(keypoints, scores)]))
                 keypoints, scores = list(keypoints), list(scores)
 
             if self.conf["refinement_radius"] > 0:
-                keypoints = soft_argmax_refinement(
-                    keypoints, dense_scores, self.conf["refinement_radius"]
-                )
+                keypoints = soft_argmax_refinement(keypoints, dense_scores, self.conf["refinement_radius"])
 
             # Convert (h, w) to (x, y)
             keypoints = [torch.flip(k, [1]).float() for k in keypoints]
@@ -328,14 +304,10 @@ class Net(nn.Module):
                     desc = sample_descriptors_fix_sampling(keypoints, dense_desc, 8)
             else:
                 if self.conf.legacy_sampling:
-                    desc = [
-                        sample_descriptors(k[None], d[None], 8)[0]
-                        for k, d in zip(keypoints, dense_desc)
-                    ]
+                    desc = [sample_descriptors(k[None], d[None], 8)[0] for k, d in zip(keypoints, dense_desc)]
                 else:
                     desc = [
-                        sample_descriptors_fix_sampling(k[None], d[None], 8)[0]
-                        for k, d in zip(keypoints, dense_desc)
+                        sample_descriptors_fix_sampling(k[None], d[None], 8)[0] for k, d in zip(keypoints, dense_desc)
                     ]
 
             pred = {
@@ -348,7 +320,7 @@ class Net(nn.Module):
                 pred["dense_descriptors"] = dense_desc
 
         return pred
-    
+
 
 class SuperPoint_baseline(BaseExtractor):
     METHOD_TYPE = MethodType.DETECT_DESCRIBE
@@ -363,36 +335,36 @@ class SuperPoint_baseline(BaseExtractor):
         "legacy_sampling": True,  # True to use the old broken sampling
     }
 
-    checkpoint_url = "https://github.com/magicleap/SuperGluePretrainedNetwork/raw/master/models/weights/superpoint_v1.pth"  # noqa: E501
+    checkpoint_url = (
+        "https://github.com/magicleap/SuperGluePretrainedNetwork/raw/master/models/weights/superpoint_v1.pth"  # noqa: E501
+    )
 
     def __init__(self, conf={}):
         self.conf = conf = OmegaConf.merge(OmegaConf.create(self.default_conf), conf)
-        self.device = torch.device('cpu')
+        self.device = torch.device("cpu")
         self.matcher = NearestNeighborMatcher()
         self.model = Net(conf)
-        self.model.load_state_dict(
-            torch.hub.load_state_dict_from_url(str(self.checkpoint_url)), strict=False
-        )
+        self.model.load_state_dict(torch.hub.load_state_dict_from_url(str(self.checkpoint_url)), strict=False)
         self.model.eval()
 
     def detectAndCompute(self, img, return_dict=False, sparse_outputs=False):
         img = ops.prepareImage(img).to(self.device)
         pred = self.model({"image": img})
-        
+
         if return_dict:
             return pred
-        
-        return pred['keypoints'], pred['descriptors']
-    
+
+        return pred["keypoints"], pred["descriptors"]
+
     def detect(self, img):
         return self.detectAndCompute(img)[0]
-    
+
     def compute(self, img, keypoints):
         img = ops.prepareImage(img).to(self.device)
         pred = self.model({"image": img}, dense_outputs=True)
         dense_desc = pred["dense_descriptors"]
         keypoints = keypoints - 0.5
-    
+
         if self.conf.legacy_sampling:
             desc = sample_descriptors(keypoints, dense_desc, 8)
         else:
@@ -404,27 +376,25 @@ class SuperPoint_baseline(BaseExtractor):
         self.model = self.model.to(device)
         self.device = device
 
-
-        
     @property
     def has_detector(self):
         return True
-    
+
+
 if __name__ == "__main__":
-    from easy_local_features.utils import io, vis, ops
-    method = SuperPoint_baseline({
-        'legacy_sampling': False
-    })
-    
+    from easy_local_features.utils import io, ops, vis
+
+    method = SuperPoint_baseline({"legacy_sampling": False})
+
     img0 = io.fromPath("test/assets/megadepth0.jpg")
 
     kpts = method.detect(img0)
     desc = method.compute(img0, kpts)
-    
+
     kpts2, desc2 = method.detectAndCompute(img0)
-    
+
     assert torch.allclose(kpts, kpts2)
-    
+
     # import pdb; pdb.set_trace()
     print(desc)
     print(desc2)

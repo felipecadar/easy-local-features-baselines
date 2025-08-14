@@ -1,5 +1,6 @@
 from abc import ABC, abstractmethod
 from typing import Optional
+
 import torch
 
 
@@ -10,9 +11,11 @@ class MethodType:
     - DESCRIPTOR_ONLY: descriptor that requires external keypoints
     - END2END_MATCHER: end-to-end matcher operating directly on two images
     """
+
     DETECT_DESCRIBE = "detect_describe"
     DESCRIPTOR_ONLY = "descriptor_only"
     END2END_MATCHER = "end2end_matcher"
+
 
 class BaseExtractor(ABC):
     # Optional override in subclasses; if None, inferred from `has_detector`.
@@ -21,36 +24,34 @@ class BaseExtractor(ABC):
     @abstractmethod
     def detectAndCompute(self, image, return_dict=False):
         raise NotImplementedError("Every BaseExtractor must implement the detectAndCompute method.")
-    
+
     @abstractmethod
     def detect(self, image):
         raise NotImplementedError("Every BaseExtractor must implement the detect method.")
-    
+
     @abstractmethod
     def compute(self, image, keypoints):
-        raise NotImplementedError("Every BaseExtractor must implement the compute method.")    
-    
+        raise NotImplementedError("Every BaseExtractor must implement the compute method.")
+
     @abstractmethod
     def to(self, device):
         raise NotImplementedError("Every BaseExtractor must implement the to method.")
-    
+
     @property
     @abstractmethod
     def has_detector(self):
         raise NotImplementedError("Every BaseExtractor must implement the has_detector property.")
-    
-    
+
     def __call__(self, data):
-        '''
+        """
         data: dict
             {
                 'image': image,
             }
-        '''
-        return self.detectAndCompute(data['image'], return_dict=True)
-    
+        """
+        return self.detectAndCompute(data["image"], return_dict=True)
+
     def addDetector(self, detector):
-        
         def detectAndCompute(image, return_dict=False):
             keypoints = detector.detect(image)
             # Support compute() returning either descriptors OR (keypoints, descriptors)
@@ -60,15 +61,12 @@ class BaseExtractor(ABC):
             else:
                 descriptors = out
             if return_dict:
-                return {
-                    'keypoints': keypoints,
-                    'descriptors': descriptors
-                }
+                return {"keypoints": keypoints, "descriptors": descriptors}
             return keypoints, descriptors
-        
+
         self.detect = detector.detect
         self.detectAndCompute = detectAndCompute
-    
+
     # @abstractmethod
     @torch.inference_mode()
     def match(self, image1, image2):
@@ -87,6 +85,7 @@ class BaseExtractor(ABC):
         if not hasattr(self, "matcher") or self.matcher is None:
             try:
                 from ..matching.nearest_neighbor import NearestNeighborMatcher
+
                 self.matcher = NearestNeighborMatcher()
             except Exception as e:
                 raise RuntimeError(
@@ -120,7 +119,7 @@ class BaseExtractor(ABC):
         for k in ("matches0", "matches1", "matching_scores0", "matching_scores1", "similarity"):
             if k in response:
                 out[k] = response[k]
-        return out    
+        return out
 
     @property
     def method_type(self) -> str:

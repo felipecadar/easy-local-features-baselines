@@ -1,14 +1,12 @@
-import sys, os
-from easy_local_features.submodules.git_aliked.aliked import ALIKED
-from .basemodel import BaseExtractor, MethodType
-from ..matching.nearest_neighbor import NearestNeighborMatcher
-from ..utils import download, ops
-import torch
 import numpy as np
-from functools import partial
-import cv2
-import wget
+import torch
 from omegaconf import OmegaConf
+
+from easy_local_features.submodules.git_aliked.aliked import ALIKED
+
+from ..matching.nearest_neighbor import NearestNeighborMatcher
+from ..utils import ops
+from .basemodel import BaseExtractor, MethodType
 
 
 class ALIKED_baseline(BaseExtractor):
@@ -25,21 +23,23 @@ class ALIKED_baseline(BaseExtractor):
         "force_num_keypoints": False,
         "nms_radius": 2,
     }
-    
+
     def __init__(self, conf={}):
         self.conf = conf = OmegaConf.merge(OmegaConf.create(self.default_conf), conf)
-        
-        self.DEV = torch.device('cpu')        
 
-        self.model = ALIKED({
-            "model_name": conf.model_name,
-            "max_num_keypoints": conf.top_k,
-            "detection_threshold": conf.detection_threshold,
-            "force_num_keypoints": conf.force_num_keypoints,
-            "pretrained": True,
-            "nms_radius": conf.nms_radius,
-        })
-        
+        self.DEV = torch.device("cpu")
+
+        self.model = ALIKED(
+            {
+                "model_name": conf.model_name,
+                "max_num_keypoints": conf.top_k,
+                "detection_threshold": conf.detection_threshold,
+                "force_num_keypoints": conf.force_num_keypoints,
+                "pretrained": True,
+                "nms_radius": conf.nms_radius,
+            }
+        )
+
         self.model = self.model.to(self.DEV)
         self.model.eval()
 
@@ -48,11 +48,11 @@ class ALIKED_baseline(BaseExtractor):
     def detectAndCompute(self, img, return_dict=False):
         image = ops.prepareImage(img, batch=True).to(self.DEV)
         with torch.no_grad():
-            res = self.model({'image': image})
+            res = self.model({"image": image})
 
-        keypoints = res['keypoints']
-        descriptors = res['descriptors']
-        
+        keypoints = res["keypoints"]
+        descriptors = res["descriptors"]
+
         if return_dict:
             return res
 
@@ -65,51 +65,52 @@ class ALIKED_baseline(BaseExtractor):
     def compute(self, img, keypoints):
         if isinstance(keypoints, np.ndarray) or isinstance(keypoints, list):
             keypoints = torch.tensor(keypoints)
-            
+
         keypoints = keypoints.to(self.DEV)
 
         if len(keypoints) == 0:
             return torch.zeros(0, 128).to(self.DEV)
-        
+
         if len(keypoints.shape) == 2:
             keypoints = keypoints.unsqueeze(0)
-            
+
         image = ops.prepareImage(img, batch=True).to(self.DEV)
         with torch.no_grad():
-            res = self.model.forward_desc({'image': image}, keypoints)
+            res = self.model.forward_desc({"image": image}, keypoints)
 
-        return res['descriptors']
-    
+        return res["descriptors"]
 
     def to(self, device):
         self.model.to(device)
         self.DEV = device
-    
+
     @property
     def has_detector(self):
         return True
-    
-    
+
+
 if __name__ == "__main__":
-    
-    from easy_local_features.utils import io, vis, ops
-    method = ALIKED_baseline({
-        "model_name": "aliked-n16",
-        "top_k": 128,
-        "detection_threshold": 0.2,
-        "force_num_keypoints": False,
-        "nms_radius": 2,
-    })
-    
+    from easy_local_features.utils import io, ops, vis
+
+    method = ALIKED_baseline(
+        {
+            "model_name": "aliked-n16",
+            "top_k": 128,
+            "detection_threshold": 0.2,
+            "force_num_keypoints": False,
+            "nms_radius": 2,
+        }
+    )
+
     img0 = io.fromPath("test/assets/megadepth0.jpg")
 
     kpts = method.detect(img0)
     desc = method.compute(img0, kpts)
-    
+
     kpts2, desc2 = method.detectAndCompute(img0)
-    
+
     assert torch.allclose(kpts, kpts2)
-    
+
     # import pdb; pdb.set_trace()
     print(desc)
     print(desc2)
