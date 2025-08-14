@@ -57,7 +57,7 @@ def test_feature_extractors(extractor_name):
     matches = extractor.match(image0, image1)
     
     vis.plot_pair(image0, image1, title=extractor_name, figsize=(8, 4))
-    vis.plot_matches(matches['mkpts0'], matches['mkpts1'])
+    vis.plot_keypoints(matches['mkpts0'], matches['mkpts1'], kps_size=2)
     vis.add_text(f"Matches: {len(matches['mkpts0'])}")
     vis.save(f"tests/results/{extractor_name}.png")
     

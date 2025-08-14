@@ -164,7 +164,7 @@ def plot_matches(mkpts0, mkpts1, fig=None, ax=None, color=None, **kwargs):
             xyA=mkp0, xyB=mkp1, 
             coordsA="data", coordsB="data",
             axesA=ax[0], axesB=ax[1], 
-            color=color[i], linewidth=1.5, **kwargs)
+            color=color[i], linewidth=0.5, **kwargs)
         con.set_in_layout(False) # remove from layout calculations
         ax[0].add_artist(con)
     ax[1].set_zorder(-1)

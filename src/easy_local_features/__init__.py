@@ -11,7 +11,8 @@ available_extractors = [
     'sosnet', 'superpoint', 'tfeat',
     'xfeat',
     # 'relf',  # optional dependency mmcv not installed in test env
-    'roma', 'orb'
+    'roma', 'orb',
+    'desc_reasoning'
 ]
 
 def importByName(name):
