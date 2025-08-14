@@ -1,0 +1,39 @@
+[project]
+name = "easy-local-features"
+version = "0.8.6"
+description = "Add your description here"
+readme = "README.md"
+authors = [
+    { name = "Felipe Cadar", email = "cadar@dcc.ufmg.br" }
+]
+requires-python = ">=3.9"
+dependencies = [
+    "e2cnn>=0.2.3",
+    "kornia-moons>=0.2.9",
+    "kornia-rs>=0.1.9",
+    "easydict",
+    "einops",
+    "numpy",
+    "omegaconf",
+    "opencv-python",
+    "scipy",
+    "tensorflow",
+    "tensorflow-hub",
+    "torch",
+    "torchvision",
+    "tqdm",
+    "wget",
+    "yacs",
+]
+
+[project.scripts]
+easy-local-features = "easy_local_features:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[dependency-groups]
+dev = [
+    "pytest>=8.0.0",
+]

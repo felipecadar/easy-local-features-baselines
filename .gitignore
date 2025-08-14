@@ -131,6 +131,6 @@ dmypy.json
 .vscode
 .pytest_cache
 
-test/results
+tests/results
 output/
 data/
