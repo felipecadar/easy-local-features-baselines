@@ -178,12 +178,10 @@ class Desc_Reasoning_baseline(BaseExtractor):
 
         out = self.pipeline.match({"image0": im0, "image1": im1})
         # Convert to the standard keys expected by tests/consumers
-        mkpts0 = out["matches0"][0]
-        mkpts1 = out["matches1"][0]
 
         return {
-            "mkpts0": mkpts0.detach().cpu(),
-            "mkpts1": mkpts1.detach().cpu(),
+            "mkpts0": out["matches0"][0].cpu().numpy(),
+            "mkpts1": out["matches1"][0].cpu().numpy(),
             # pass-through raw outputs for debugging/analysis
             **out,
         }
