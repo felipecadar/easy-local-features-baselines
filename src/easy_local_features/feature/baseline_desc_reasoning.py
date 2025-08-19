@@ -32,7 +32,7 @@ class Desc_Reasoning_baseline(BaseExtractor):
         # Cache directory under ~/.cache/torch/hub/checkpoints/easy_local_features/desc_reasoning
         "cache_namespace": "desc_reasoning",
         
-        "top_k": 1000,  # Top-K matches to return; Reasoning uses its own matching logic
+        "top_k": 2048,  # Top-K matches to return; Reasoning uses its own matching logic
     }
 
     # Public weights from https://github.com/verlab/DescriptorReasoning_ACCV_2024/releases/tag/weights
