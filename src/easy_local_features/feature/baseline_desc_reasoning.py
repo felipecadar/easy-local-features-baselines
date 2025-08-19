@@ -31,6 +31,8 @@ class Desc_Reasoning_baseline(BaseExtractor):
         "device": "auto",
         # Cache directory under ~/.cache/torch/hub/checkpoints/easy_local_features/desc_reasoning
         "cache_namespace": "desc_reasoning",
+        
+        "top_k": 1000,  # Top-K matches to return; Reasoning uses its own matching logic
     }
 
     # Public weights from https://github.com/verlab/DescriptorReasoning_ACCV_2024/releases/tag/weights
@@ -72,6 +74,7 @@ class Desc_Reasoning_baseline(BaseExtractor):
             weights_path=conf.weights_path,
         )
         self.reasoning_model = bundle["model"]
+        self.reasoning_model.conf.extractor.max_num_keypoints = conf.get("top_k", 2048)
 
         # Build the high-level pipeline (extractor + DinoV2 + reasoning)
         # Using any non-None value triggers auto device selection (cuda if available)
