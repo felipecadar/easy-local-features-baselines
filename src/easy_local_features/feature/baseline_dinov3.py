@@ -22,10 +22,10 @@ import tempfile
 import torch
 import torch.nn.functional as F
 
-from ..matching.nearest_neighbor import NearestNeighborMatcher
+from easy_local_features.matching.nearest_neighbor import NearestNeighborMatcher
 from omegaconf import OmegaConf
-from .basemodel import BaseExtractor, MethodType
-from ..utils import ops
+from easy_local_features.feature.basemodel import BaseExtractor, MethodType
+from easy_local_features.utils import ops
 
 
 class DINOv3_baseline(BaseExtractor):
@@ -158,6 +158,40 @@ class DINOv3_baseline(BaseExtractor):
             std = torch.tensor([0.213, 0.156, 0.143], device=img.device).view(1, 3, 1, 1)
             return (img - mean) / std
         return img
+
+    def denseCompute(self, img):
+        # Prepare image tensor (0-1, BCHW)
+        img = ops.prepareImage(img, gray=False, batch=True, imagenet=False).to(self.device)
+
+        # Enforce 3-channel for normalization expectations
+        if img.shape[1] == 1:
+            img = img.repeat(1, 3, 1, 1)
+
+        # Apply normalization per DINOv3 guidance
+        norm_mode = self._infer_norm_mode()
+        img = self._apply_normalization(img, norm_mode)
+
+        if self.conf.allow_resize:
+            # ensure divisible by patch size for ViT
+            patch = self.vit_size
+            img = F.interpolate(img, [int(x // patch * patch) for x in img.shape[-2:]])
+
+        # Only ViT-style backbones expose get_intermediate_layers; guard for ConvNeXt
+        if not hasattr(self.model, "get_intermediate_layers"):
+            raise NotImplementedError(
+                "DINOv3_baseline currently supports ViT backbones (dinov3_vit*)."
+            )
+
+        # DINOv3 ViT exposes get_intermediate_layers similar to DINOv2
+        desc, cls_token = self.model.get_intermediate_layers(
+            img, n=1, return_class_token=True, reshape=True
+        )[0]
+
+        return {
+            "global_descriptor": cls_token,
+            "feature_map": desc,
+        }
+
 
     def _infer_norm_mode(self) -> str:
         # If explicit, honor it.
@@ -307,8 +341,8 @@ if __name__ == "__main__":
     img1 = io.fromPath("tests/assets/megadepth1.jpg")
     
     # resize for faster testing
-    img0, _ = ops.resize_short_edge(img0, 320)
-    img1, _ = ops.resize_short_edge(img1, 320)
+    img0, _ = ops.resize_short_edge(img0, 512)
+    img1, _ = ops.resize_short_edge(img1, 512)
     
     # Create DINOv3 descriptor and SuperPoint detector
     # Tip: for official weights, prefer local repo + weights path per README.
@@ -322,7 +356,7 @@ if __name__ == "__main__":
     # For convenience we fall back to remote hub here:
     method = DINOv3_baseline(
         {
-            "weights": "dinov3_vitb16",
+            "weights": "dinov3_vitl16",
         }
     )
     detector = SuperPoint_baseline(
