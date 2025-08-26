@@ -21,7 +21,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: ['3.9', '3.10', '3.11']
+        python-version: ['3.11']
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -61,6 +61,9 @@ jobs:
         run: mkdocs build --strict
         env:
           PYTHONPATH: src
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v4
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
