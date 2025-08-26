@@ -12,6 +12,9 @@ plugins:
       default_handler: python
       handlers:
         python:
+          # Ensure mkdocstrings can find the package in src/
+          paths:
+            - src
           options:
             show_source: true
             docstring_style: google

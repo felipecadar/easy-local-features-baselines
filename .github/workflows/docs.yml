@@ -38,6 +38,8 @@ jobs:
 
       - name: Build docs
         run: mkdocs build --strict
+        env:
+          PYTHONPATH: src
 
   build:
     runs-on: ubuntu-latest
@@ -57,6 +59,8 @@ jobs:
 
       - name: Build site
         run: mkdocs build --strict
+        env:
+          PYTHONPATH: src
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
