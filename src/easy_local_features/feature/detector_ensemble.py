@@ -7,6 +7,7 @@ import numpy as np
 import torch
 
 from ..utils import ops
+from .basemodel import ImageLike
 
 
 DetectorLike = Union[object]
@@ -62,7 +63,7 @@ class EnsembleDetector:
         return self
 
     @torch.inference_mode()
-    def detect(self, image) -> torch.Tensor:
+    def detect(self, image: ImageLike) -> torch.Tensor:
         """Detect and merge keypoints from all detectors.
 
         Args:

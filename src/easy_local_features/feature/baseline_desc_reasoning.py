@@ -181,10 +181,21 @@ class Desc_Reasoning_baseline(BaseExtractor):
 
         out = self.pipeline.match({"image0": im0, "image1": im1})
         # Convert to the standard keys expected by tests/consumers
+        mk0 = out.get("matches0")
+        mk1 = out.get("matches1")
+        # Ensure torch tensors on CPU
+        mk0_t = mk0[0] if isinstance(mk0, (list, tuple)) else mk0
+        mk1_t = mk1[0] if isinstance(mk1, (list, tuple)) else mk1
+        if not isinstance(mk0_t, torch.Tensor):
+            mk0_t = torch.as_tensor(mk0_t)
+        if not isinstance(mk1_t, torch.Tensor):
+            mk1_t = torch.as_tensor(mk1_t)
+        mk0_t = mk0_t.detach().cpu()
+        mk1_t = mk1_t.detach().cpu()
 
         return {
-            "mkpts0": out["matches0"][0].cpu().numpy(),
-            "mkpts1": out["matches1"][0].cpu().numpy(),
+            "mkpts0": mk0_t,
+            "mkpts1": mk1_t,
             # pass-through raw outputs for debugging/analysis
             **out,
         }

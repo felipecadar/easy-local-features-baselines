@@ -1,6 +1,9 @@
-from abc import ABC, abstractmethod
-from typing import Optional
+from __future__ import annotations
 
+from abc import ABC, abstractmethod
+from typing import Dict, Optional, Tuple, Union, overload, Protocol, runtime_checkable
+
+import numpy as np
 import torch
 
 
@@ -15,6 +18,23 @@ class MethodType:
     DETECT_DESCRIBE = "detect_describe"
     DESCRIPTOR_ONLY = "descriptor_only"
     END2END_MATCHER = "end2end_matcher"
+
+
+# Public type aliases used across feature modules
+ImageLike = Union[str, np.ndarray, torch.Tensor]
+KeypointsTensor = torch.Tensor
+DescriptorsTensor = torch.Tensor
+
+
+@runtime_checkable
+class DetectorProtocol(Protocol):
+    """Minimal protocol for an external detector used by descriptors.
+
+    Any object exposing `detect(image) -> Tensor[[N,2] or [1,N,2]]` is accepted.
+    """
+
+    def detect(self, image: ImageLike) -> torch.Tensor:  # pragma: no cover - protocol
+        ...
 
 
 class BaseExtractor(ABC):
@@ -35,7 +55,17 @@ class BaseExtractor(ABC):
     METHOD_TYPE: Optional[str] = None
 
     @abstractmethod
-    def detectAndCompute(self, image, return_dict=False):
+    @overload
+    def detectAndCompute(self, image: ImageLike, return_dict: bool) -> Dict[str, torch.Tensor]:
+        ...
+
+    @overload
+    def detectAndCompute(self, image: ImageLike, return_dict: bool = False) -> Tuple[KeypointsTensor, DescriptorsTensor]:
+        ...
+
+    def detectAndCompute(self, image: ImageLike, return_dict: bool = False) -> Union[
+        Tuple[KeypointsTensor, DescriptorsTensor], Dict[str, torch.Tensor]
+    ]:
         """Run detection and description on an image.
 
         Args:
@@ -49,7 +79,7 @@ class BaseExtractor(ABC):
         raise NotImplementedError("Every BaseExtractor must implement the detectAndCompute method.")
 
     @abstractmethod
-    def detect(self, image):
+    def detect(self, image: ImageLike) -> KeypointsTensor:
         """Detect keypoints on an image.
 
         Args:
@@ -61,7 +91,9 @@ class BaseExtractor(ABC):
         raise NotImplementedError("Every BaseExtractor must implement the detect method.")
 
     @abstractmethod
-    def compute(self, image, keypoints):
+    def compute(self, image: ImageLike, keypoints: KeypointsTensor) -> Union[
+        DescriptorsTensor, Tuple[KeypointsTensor, DescriptorsTensor]
+    ]:
         """Compute descriptors for provided keypoints.
 
         Args:
@@ -75,17 +107,17 @@ class BaseExtractor(ABC):
         raise NotImplementedError("Every BaseExtractor must implement the compute method.")
 
     @abstractmethod
-    def to(self, device):
+    def to(self, device: Union[torch.device, str]) -> "BaseExtractor":
         """Move internal models to the specified device and return self."""
         raise NotImplementedError("Every BaseExtractor must implement the to method.")
 
     @property
     @abstractmethod
-    def has_detector(self):
+    def has_detector(self) -> bool:
         """Whether this extractor provides its own detector (True) or not (False)."""
         raise NotImplementedError("Every BaseExtractor must implement the has_detector property.")
 
-    def __call__(self, data):
+    def __call__(self, data: Dict[str, ImageLike]) -> Dict[str, torch.Tensor]:
         """Forward entry point compatible with some pipelines.
 
         Expects a dict with key 'image' and returns the same as detectAndCompute
@@ -93,7 +125,7 @@ class BaseExtractor(ABC):
         """
         return self.detectAndCompute(data["image"], return_dict=True)
 
-    def addDetector(self, detector):
+    def addDetector(self, detector: DetectorProtocol) -> None:
         """Attach an external detector to a descriptor-only extractor.
 
         Replaces this instance's detect() and detectAndCompute() to use the
@@ -102,7 +134,9 @@ class BaseExtractor(ABC):
         Args:
             detector: Object exposing detect(image) -> keypoints.
         """
-        def detectAndCompute(image, return_dict=False):
+        def detectAndCompute(image: ImageLike, return_dict: bool = False) -> Union[
+            Tuple[KeypointsTensor, DescriptorsTensor], Dict[str, torch.Tensor]
+        ]:
             keypoints = detector.detect(image)
             # Support compute() returning either descriptors OR (keypoints, descriptors)
             out = self.compute(image, keypoints)
@@ -119,7 +153,7 @@ class BaseExtractor(ABC):
 
     # @abstractmethod
     @torch.inference_mode()
-    def match(self, image1, image2):
+    def match(self, image1: ImageLike, image2: ImageLike) -> Dict[str, torch.Tensor]:
         """Match two images using this extractor and its matcher.
 
         Args:
