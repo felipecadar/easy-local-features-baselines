@@ -18,40 +18,90 @@ class MethodType:
 
 
 class BaseExtractor(ABC):
+    """Base interface for feature extractors.
+
+    Implementations may provide a detector and descriptor (detect+describe) or
+    just a descriptor (descriptor-only). Public methods are standardized so
+    downstream code can work with any extractor uniformly.
+
+    Key conventions:
+    - Images can be file paths, numpy arrays (H×W×C or H×W), or torch tensors
+        ([C,H,W] or [B,C,H,W]). Implementations should normalize inputs.
+    - Keypoints are in pixel coordinates (x, y). Batched outputs are shaped
+        [B, N, 2]; non-batched may be [N, 2] or [1, N, 2].
+    - Descriptors are shaped [B, N, D] (or [N, D]).
+    """
     # Optional override in subclasses; if None, inferred from `has_detector`.
     METHOD_TYPE: Optional[str] = None
 
     @abstractmethod
     def detectAndCompute(self, image, return_dict=False):
+        """Run detection and description on an image.
+
+        Args:
+            image: Path, numpy array, or tensor. May be batched.
+            return_dict: If True, return a dict with keys 'keypoints' and 'descriptors'.
+
+        Returns:
+            Tuple[Tensor, Tensor] or dict: keypoints and descriptors. Shapes follow
+            the conventions in the class docstring.
+        """
         raise NotImplementedError("Every BaseExtractor must implement the detectAndCompute method.")
 
     @abstractmethod
     def detect(self, image):
+        """Detect keypoints on an image.
+
+        Args:
+            image: Path, numpy array, or tensor. May be batched.
+
+        Returns:
+            Tensor: keypoints shaped [B, N, 2] or [N, 2].
+        """
         raise NotImplementedError("Every BaseExtractor must implement the detect method.")
 
     @abstractmethod
     def compute(self, image, keypoints):
+        """Compute descriptors for provided keypoints.
+
+        Args:
+            image: Path, numpy array, or tensor. May be batched.
+            keypoints: Tensor of keypoints [B, N, 2] or [N, 2].
+
+        Returns:
+            Tensor or Tuple[Tensor, Tensor]: descriptors [B, N, D] or optionally
+            a pair (keypoints, descriptors) if the method refines keypoints.
+        """
         raise NotImplementedError("Every BaseExtractor must implement the compute method.")
 
     @abstractmethod
     def to(self, device):
+        """Move internal models to the specified device and return self."""
         raise NotImplementedError("Every BaseExtractor must implement the to method.")
 
     @property
     @abstractmethod
     def has_detector(self):
+        """Whether this extractor provides its own detector (True) or not (False)."""
         raise NotImplementedError("Every BaseExtractor must implement the has_detector property.")
 
     def __call__(self, data):
-        """
-        data: dict
-            {
-                'image': image,
-            }
+        """Forward entry point compatible with some pipelines.
+
+        Expects a dict with key 'image' and returns the same as detectAndCompute
+        with return_dict=True for convenience.
         """
         return self.detectAndCompute(data["image"], return_dict=True)
 
     def addDetector(self, detector):
+        """Attach an external detector to a descriptor-only extractor.
+
+        Replaces this instance's detect() and detectAndCompute() to use the
+        provided detector, while compute() remains from the current extractor.
+
+        Args:
+            detector: Object exposing detect(image) -> keypoints.
+        """
         def detectAndCompute(image, return_dict=False):
             keypoints = detector.detect(image)
             # Support compute() returning either descriptors OR (keypoints, descriptors)
@@ -70,16 +120,18 @@ class BaseExtractor(ABC):
     # @abstractmethod
     @torch.inference_mode()
     def match(self, image1, image2):
-        """Match two images using this method's extractor and matcher.
+        """Match two images using this extractor and its matcher.
 
-        Inputs:
-        - image1, image2: numpy arrays, torch tensors, or paths. Each will be
-          prepared by the concrete extractor's detectAndCompute implementation.
+        Args:
+            image1: First image (path/array/tensor).
+            image2: Second image (path/array/tensor).
 
-        Returns dict with at least:
-        - mkpts0: matched keypoints from image1, shape [M, 2] or [1, M, 2]
-        - mkpts1: matched keypoints from image2, shape [M, 2] or [1, M, 2]
-        Optionally, may include matcher-specific fields like matches0, matches1, scores.
+        Returns:
+            dict with at least:
+                - mkpts0: matched keypoints from image1, [M, 2] or [1, M, 2]
+                - mkpts1: matched keypoints from image2, [M, 2] or [1, M, 2]
+            and optionally matcher-specific items: matches0, matches1,
+            matching_scores0, matching_scores1, similarity.
         """
         # Ensure a matcher exists; lazily fall back to a simple NN matcher.
         if not hasattr(self, "matcher") or self.matcher is None:
@@ -129,11 +181,12 @@ class BaseExtractor(ABC):
     def method_type(self) -> str:
         """Return the standardized method type string.
 
-        Subclasses may override by setting class attribute `METHOD_TYPE` or
-        by overriding this property. If not set, we infer from `has_detector`:
+        Subclasses may override by setting class attribute `METHOD_TYPE` or by
+        overriding this property. If not set, we infer from `has_detector`:
         - True  -> detect+describe
         - False -> descriptor-only
         """
         if self.METHOD_TYPE is not None:
             return self.METHOD_TYPE
         return MethodType.DETECT_DESCRIBE if self.has_detector else MethodType.DESCRIPTOR_ONLY
+    
