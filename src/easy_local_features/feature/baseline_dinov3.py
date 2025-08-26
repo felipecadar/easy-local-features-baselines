@@ -26,6 +26,7 @@ from easy_local_features.matching.nearest_neighbor import NearestNeighborMatcher
 from omegaconf import OmegaConf
 from easy_local_features.feature.basemodel import BaseExtractor, MethodType
 from easy_local_features.utils import ops
+from easy_local_features.utils.download import getCache
 
 
 class DINOv3_baseline(BaseExtractor):
@@ -305,7 +306,7 @@ class DINOv3_baseline(BaseExtractor):
 
         filename = gh_map[variant]
         # Save under system temporary directory
-        tmp_base = Path(tempfile.gettempdir()) / "easy_local_features" / "dinov3"
+        tmp_base = Path(getCache("dinov3")) 
         weights_dir = tmp_base
         weights_dir.mkdir(parents=True, exist_ok=True)
         target_path = weights_dir / filename
