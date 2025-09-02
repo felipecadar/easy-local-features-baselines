@@ -11,17 +11,25 @@ This guide walks you through the process of adding a new feature extractor to th
 Create a new file `src/easy_local_features/feature/baseline_<name>.py` that subclasses `BaseExtractor`.
 
 ```python
-from typing import Dict, Any
+from typing import Dict, Any, TypedDict, Optional
 from omegaconf import OmegaConf
 from .basemodel import BaseExtractor, MethodType
-from .configs import YourConfigType  # If you add a config type
+
+class YourConfigType(TypedDict):
+    model_name: str
+    top_k: int
+    detection_threshold: float
+    nms_radius: int
+    # Add other configuration parameters as needed
 
 class YourExtractor_baseline(BaseExtractor):
     METHOD_TYPE = MethodType.DETECT_DESCRIBE  # or DESCRIPTOR_ONLY or END2END_MATCHER
     
     default_conf: YourConfigType = {
-        "param1": "value1",
-        "param2": 42,
+        "model_name": "your_model",
+        "top_k": 2048,
+        "detection_threshold": 0.2,
+        "nms_radius": 4,
         # ... your default parameters
     }
 
@@ -54,20 +62,7 @@ class YourExtractor_baseline(BaseExtractor):
         return True  # or False for descriptor-only methods
 ```
 
-## Step 2: Add configuration type hints (optional but recommended)
-
-Add a TypedDict for your configuration in `src/easy_local_features/feature/configs.py`:
-
-```python
-from typing import TypedDict
-
-class YourConfigType(TypedDict):
-    param1: str
-    param2: int
-    # ... add all your parameters
-```
-
-## Step 3: Register the extractor
+## Step 2: Register the extractor
 
 Add your extractor name to `available_extractors` in `src/easy_local_features/__init__.py`:
 
@@ -78,13 +73,13 @@ available_extractors = [
 ]
 ```
 
-## Step 4: Handle dependencies and weights
+## Step 3: Handle dependencies and weights
 
 - If your method requires external weights, download them in the `__init__` method
 - Add any required dependencies to `pyproject.toml`
 - If using submodules, place them in `src/easy_local_features/submodules/`
 
-## Step 5: Add tests
+## Step 4: Add tests
 
 Create or update tests in `tests/test_features.py` to include your new extractor:
 
@@ -95,7 +90,7 @@ def test_feature_extractors(extractor_name):
     pass
 ```
 
-## Step 6: Update documentation
+## Step 5: Update documentation
 
 - Add your extractor to the API documentation
 - Update the README if needed
@@ -107,8 +102,19 @@ Here's a minimal example for ORB:
 
 ```python
 import cv2
+from typing import TypedDict
 from .basemodel import BaseExtractor, MethodType
-from .configs import ORBConfig
+
+class ORBConfig(TypedDict):
+    nfeatures: int
+    scaleFactor: float
+    nlevels: int
+    edgeThreshold: int
+    firstLevel: int
+    WTA_K: int
+    scoreType: int
+    patchSize: int
+    fastThreshold: int
 
 class ORB_baseline(BaseExtractor):
     METHOD_TYPE = MethodType.DETECT_DESCRIBE
