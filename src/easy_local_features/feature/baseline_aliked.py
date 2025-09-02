@@ -7,6 +7,15 @@ from easy_local_features.submodules.git_aliked.aliked import ALIKED
 from ..matching.nearest_neighbor import NearestNeighborMatcher
 from ..utils import ops
 from .basemodel import BaseExtractor, MethodType
+from typing import TypedDict
+
+
+class ALIKEDConfig(TypedDict):
+    model_name: str
+    top_k: int
+    detection_threshold: float
+    force_num_keypoints: bool
+    nms_radius: int
 
 
 class ALIKED_baseline(BaseExtractor):
@@ -16,7 +25,7 @@ class ALIKED_baseline(BaseExtractor):
         top_k: int = -1, # -1 for threshold based mode, >0 for top K mode.
         scores_th: float = 0.2, # Threshold for top K = -1 mode
     """
-    default_conf = {
+    default_conf: ALIKEDConfig = {
         "model_name": "aliked-n16",
         "top_k": -1,
         "detection_threshold": 0.2,
@@ -24,7 +33,7 @@ class ALIKED_baseline(BaseExtractor):
         "nms_radius": 2,
     }
 
-    def __init__(self, conf={}):
+    def __init__(self, conf: ALIKEDConfig = {}):
         self.conf = conf = OmegaConf.merge(OmegaConf.create(self.default_conf), conf)
 
         self.DEV = torch.device("cpu")
@@ -90,7 +99,7 @@ class ALIKED_baseline(BaseExtractor):
 
 
 if __name__ == "__main__":
-    from easy_local_features.utils import io, ops, vis
+    from easy_local_features.utils import io, ops
 
     method = ALIKED_baseline(
         {

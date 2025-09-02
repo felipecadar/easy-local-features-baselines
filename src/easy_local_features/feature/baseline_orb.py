@@ -6,11 +6,24 @@ from omegaconf import OmegaConf
 from ..matching.nearest_neighbor import NearestNeighborMatcher
 from ..utils import ops
 from .basemodel import BaseExtractor, MethodType
+from typing import TypedDict
+
+
+class ORBConfig(TypedDict):
+    top_k: int
+    scaleFactor: float
+    nlevels: int
+    edgeThreshold: int
+    firstLevel: int
+    WTA_K: int
+    scoreType: int
+    patchSize: int
+    fastThreshold: int
 
 
 class ORB_baseline(BaseExtractor):
     METHOD_TYPE = MethodType.DETECT_DESCRIBE
-    default_conf = {
+    default_conf: ORBConfig = {
         "top_k": 2048,
         "scaleFactor": 1.2,
         "nlevels": 8,
@@ -22,7 +35,7 @@ class ORB_baseline(BaseExtractor):
         "fastThreshold": 20,
     }
 
-    def __init__(self, conf={}):
+    def __init__(self, conf: ORBConfig = {}):
         self.conf = conf = OmegaConf.merge(OmegaConf.create(self.default_conf), conf)
         self.model = cv2.ORB_create(
             nfeatures=conf.top_k,

@@ -6,6 +6,7 @@ from omegaconf import OmegaConf
 from .basemodel import BaseExtractor, MethodType
 from ..utils import ops
 from ..utils.pathutils import CACHE_BASE
+from typing import TypedDict, Optional
 
 # Wrap the submodule Reasoning pipeline as a Baseline extractor
 from easy_local_features.submodules.git_reasoningaccv.desc_reasoning import (
@@ -14,12 +15,25 @@ from easy_local_features.submodules.git_reasoningaccv.desc_reasoning import (
 )
 
 
+class DescReasoningConfig(TypedDict):
+    model_name: str
+    top_k: int
+    detection_threshold: float
+    nms_radius: int
+    checkpoint_path: Optional[str]
+    pretrained: str
+    weights_path: Optional[str]
+    device: str
+    cache_namespace: str
+    desc_dim: int
+
+
 class Desc_Reasoning_baseline(BaseExtractor):
     METHOD_TYPE = MethodType.DETECT_DESCRIBE
 
     # Minimal configuration: users must provide a checkpoint folder created by the
     # reasoning training code (containing model_config.yaml and weights .pt files).
-    default_conf = {
+    default_conf: DescReasoningConfig = {
         # Option A: pass an explicit checkpoint folder with model_config.yaml and *.pt
         "checkpoint_path": None,
         # Option B: specify a pretrained model name to auto-download from the public release
@@ -31,7 +45,7 @@ class Desc_Reasoning_baseline(BaseExtractor):
         "device": "auto",
         # Cache directory under ~/.cache/torch/hub/checkpoints/easy_local_features/desc_reasoning
         "cache_namespace": "desc_reasoning",
-        
+
         "top_k": 2048,  # Top-K matches to return; Reasoning uses its own matching logic
     }
 
@@ -55,7 +69,7 @@ class Desc_Reasoning_baseline(BaseExtractor):
         "xfeat-dino_L": "https://github.com/verlab/DescriptorReasoning_ACCV_2024/releases/download/weights/xfeat-dino_L.zip",
     }
 
-    def __init__(self, conf: dict = {}):
+    def __init__(self, conf: DescReasoningConfig = {}):
         # Merge configs and validate mandatory fields
         self.conf = conf = OmegaConf.merge(OmegaConf.create(self.default_conf), conf)
 
@@ -199,6 +213,7 @@ class Desc_Reasoning_baseline(BaseExtractor):
             # pass-through raw outputs for debugging/analysis
             **out,
         }
+
 
 if __name__ == "__main__":
     # Minimal sanity check: auto-download a small pretrained model and run a quick pass

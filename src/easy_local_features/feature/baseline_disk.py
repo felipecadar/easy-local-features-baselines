@@ -10,6 +10,15 @@ from ..matching.nearest_neighbor import NearestNeighborMatcher
 from ..utils import ops
 from ..utils.download import downloadModel
 from .basemodel import BaseExtractor, MethodType
+from typing import TypedDict
+
+
+class DISKConfig(TypedDict):
+    window: int
+    desc_dim: int
+    mode: str
+    top_k: int
+    auto_resize: bool
 
 
 class Image:
@@ -71,7 +80,7 @@ class Image:
 
 class DISK_baseline(BaseExtractor):
     METHOD_TYPE = MethodType.DETECT_DESCRIBE
-    default_conf = {
+    default_conf: DISKConfig = {
         "window": 8,
         "desc_dim": 128,
         "mode": "rng",
@@ -79,7 +88,7 @@ class DISK_baseline(BaseExtractor):
         "auto_resize": True,
     }
 
-    def __init__(self, conf={}):
+    def __init__(self, conf: DISKConfig = {}):
         self.conf = conf = OmegaConf.merge(OmegaConf.create(self.default_conf), conf)
         window = conf.window
         desc_dim = conf.desc_dim
@@ -166,7 +175,7 @@ class DISK_baseline(BaseExtractor):
         return self.detectAndCompute(img)[0]
 
     def compute(self, image, keypoints):
-        raise NotImplemented
+        raise NotImplementedError
 
     def to(self, device):
         self.model.to(device)

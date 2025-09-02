@@ -18,7 +18,6 @@ then bilinearly interpolates at provided keypoints.
 
 import sys
 from pathlib import Path
-import tempfile
 import torch
 import torch.nn.functional as F
 
@@ -27,6 +26,16 @@ from omegaconf import OmegaConf
 from easy_local_features.feature.basemodel import BaseExtractor, MethodType
 from easy_local_features.utils import ops
 from easy_local_features.utils.download import getCache
+from typing import TypedDict, Optional
+
+
+class DINOv3Config(TypedDict):
+    weights: str
+    allow_resize: bool
+    repo_dir: Optional[str]
+    weights_path: Optional[str]
+    source: str
+    normalize: str
 
 
 class DINOv3_baseline(BaseExtractor):
@@ -49,7 +58,7 @@ class DINOv3_baseline(BaseExtractor):
         "dinov3_sat_vit7b16",
     ]
 
-    default_conf = {
+    default_conf: DINOv3Config = {
         "weights": "dinov3_vits16",  # default ViT-S/16
         "allow_resize": True,  # resize to multiples of patch size
         # Optional advanced loading options:
@@ -62,7 +71,7 @@ class DINOv3_baseline(BaseExtractor):
         "normalize": "auto",
     }
 
-    def __init__(self, conf={}):
+    def __init__(self, conf: DINOv3Config = {}):
         self.conf = conf = OmegaConf.merge(OmegaConf.create(self.default_conf), conf)
         self.device = torch.device("cpu")
         self.matcher = NearestNeighborMatcher()
@@ -394,4 +403,3 @@ if __name__ == "__main__":
         matches["mkpts1"],
     )
     vis.show()
-    

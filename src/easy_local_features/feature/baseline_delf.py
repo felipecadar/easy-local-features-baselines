@@ -2,10 +2,20 @@ import tensorflow as tf
 import tensorflow_hub as hub
 import torch
 from omegaconf import OmegaConf
+from typing import TypedDict
 
 from ..matching.nearest_neighbor import NearestNeighborMatcher
 from ..utils import ops
 from .basemodel import BaseExtractor, MethodType
+
+
+class DELFConfig(TypedDict):
+    model_name: str
+    top_k: int
+    detection_threshold: float
+    nms_radius: int
+    use_pca: bool
+    use_whitening: bool
 
 
 class DELF_baseline(BaseExtractor):
@@ -20,11 +30,16 @@ class DELF_baseline(BaseExtractor):
     """
 
     METHOD_TYPE = MethodType.DETECT_DESCRIBE
-    default_config = {
+    default_config: DELFConfig = {
+        "model_name": "delf",
         "top_k": 2048,
+        "detection_threshold": 0.2,
+        "nms_radius": 4,
+        "use_pca": False,
+        "use_whitening": False,
     }
 
-    def __init__(self, conf={}):
+    def __init__(self, conf: DELFConfig = {}):
         self.conf = conf = OmegaConf.merge(OmegaConf.create(self.default_config), conf)
         # Load TF Hub model once; returns a SavedModel signature callable.
         self.model = hub.load("https://tfhub.dev/google/delf/1").signatures["default"]

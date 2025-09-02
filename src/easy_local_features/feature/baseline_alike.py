@@ -7,6 +7,17 @@ from ..matching.nearest_neighbor import NearestNeighborMatcher
 from ..utils import ops
 from ..utils.download import downloadModel
 from .basemodel import BaseExtractor, MethodType
+from typing import TypedDict, Optional
+
+
+class ALIKEConfig(TypedDict):
+    model_name: str
+    top_k: int
+    scores_th: float
+    n_limit: int
+    sub_pixel: bool
+    model_path: Optional[str]
+
 
 models = {
     "alike-t": "https://github.com/Shiaoming/ALIKE/raw/main/models/alike-t.pth",
@@ -52,7 +63,7 @@ class ALIKE_baseline(BaseExtractor):
     device: int = -1. Device to run the model on. -1 for CPU, >=0 for GPU. (default: -1)
     """
 
-    default_conf = {
+    default_conf: ALIKEConfig = {
         "model_name": "alike-t",
         "top_k": -1,
         "scores_th": 0.2,
@@ -61,7 +72,7 @@ class ALIKE_baseline(BaseExtractor):
         "model_path": None,
     }
 
-    def __init__(self, conf={}):
+    def __init__(self, conf: ALIKEConfig = {}):
         self.conf = conf = OmegaConf.merge(OmegaConf.create(self.default_conf), conf)
         model_name = conf.model_name
         top_k = conf.top_k

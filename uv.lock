@@ -450,7 +450,7 @@ wheels = [
 
 [[package]]
 name = "easy-local-features"
-version = "0.8.11"
+version = "0.8.12"
 source = { editable = "." }
 dependencies = [
     { name = "e2cnn" },

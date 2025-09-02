@@ -5,6 +5,17 @@ from omegaconf import OmegaConf
 from easy_local_features.submodules.git_roma import romatch
 
 from .basemodel import BaseExtractor, MethodType
+from typing import TypedDict
+
+
+class ROMAConfig(TypedDict):
+    model_name: str
+    top_k: int
+    detection_threshold: float
+    nms_radius: int
+    model: str
+    upsample_factor: int
+
 
 models = {
     "outdoor": romatch.models.roma_outdoor,
@@ -15,9 +26,16 @@ models = {
 
 class RoMa_baseline(BaseExtractor):
     METHOD_TYPE = MethodType.END2END_MATCHER
-    default_conf = {"top_k": 512, "model": "outdoor"}
+    default_conf: ROMAConfig = {
+        "model_name": "roma",
+        "top_k": 512,
+        "detection_threshold": 0.2,
+        "nms_radius": 4,
+        "model": "outdoor",
+        "upsample_factor": 8,
+    }
 
-    def __init__(self, conf={}):
+    def __init__(self, conf: ROMAConfig = {}):
         self.conf = conf = OmegaConf.merge(OmegaConf.create(self.default_conf), conf)
         self.num_keypoints = conf.top_k
         self.device = torch.device("cpu")
