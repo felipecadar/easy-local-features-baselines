@@ -1,0 +1,79 @@
+import warnings
+from typing import TypedDict
+
+import torch
+
+from easy_local_features.submodules.git_dad.dad import dad
+from easy_local_features.submodules.git_dad.dad.dad.utils import get_best_device
+
+from ..matching.nearest_neighbor import NearestNeighborMatcher
+from .basemodel import BaseExtractor, MethodType
+
+
+class DadConfig(TypedDict):
+    num_keypoints: int
+    resize: int
+    nms_size: int
+
+
+class DAD_baseline(BaseExtractor):
+    METHOD_TYPE = MethodType.DETECT_DESCRIBE
+    default_conf = DadConfig(
+        num_keypoints=1024,
+        resize=1024,
+        nms_size=3,
+    )
+
+    def __init__(self, conf={}):
+        self.num_keypoints = conf.get("num_keypoints", self.default_conf["num_keypoints"])
+        self.detector = dad.load_DaD()
+        self.DEV = get_best_device()
+        self.matcher = NearestNeighborMatcher()
+
+    def detect(self, image, return_dict=None):
+        img = image.to(self.DEV)
+
+        mkpts = self.detector.detect({"image": img}, num_keypoints=self.num_keypoints)["keypoints"]
+        mkpts = self.detector.to_pixel_coords(mkpts, img.shape[-2], img.shape[-1])
+
+        if return_dict:
+            return {"mkpts": mkpts}
+        return mkpts
+
+    def detectAndCompute(self, image, return_dict=None):
+        keypoints = self.detect(image, return_dict=False)
+        B, _, _, _ = image.shape
+
+        descriptors = torch.zeros(B, keypoints.shape[1], 256, device=keypoints.device)
+        warnings.warn("DAD does not compute descriptors; returning zero descriptors.")
+
+        if return_dict:
+            return {"keypoints": keypoints, "descriptors": descriptors}
+        return keypoints, descriptors
+
+    def compute(self, image, keypoints):
+        raise NotImplementedError
+
+    @property
+    def has_detector(self):
+        return True
+
+    def to(self, device):
+        self.detector.to(device)
+        self.DEV = device
+
+
+if __name__ == "__main__":
+    from easy_local_features.utils import io, vis
+
+    detector = DAD_baseline({"num_keypoints": 512})
+
+    img0 = io.fromPath("../tests/assets/megadepth0.jpg")
+    img1 = io.fromPath("../tests/assets/megadepth1.jpg")
+
+    kps0 = detector.detect(img0)
+    kps1 = detector.detect(img1)
+
+    vis.plot_pair(img0, img1)
+    vis.plot_keypoints(keypoints0=kps0.cpu(), keypoints1=kps1.cpu())
+    vis.show()
