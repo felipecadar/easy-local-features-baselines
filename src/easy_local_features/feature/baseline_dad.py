@@ -1,12 +1,28 @@
+import warnings
+from typing import TypedDict
+
+import torch
+
 from easy_local_features.submodules.git_dad.dad import dad
 from easy_local_features.submodules.git_dad.dad.dad.utils import get_best_device
 
-from .basemodel import BaseExtractor
 from ..matching.nearest_neighbor import NearestNeighborMatcher
+from .basemodel import BaseExtractor, MethodType
+
+
+class DadConfig(TypedDict):
+    num_keypoints: int
+    resize: int
+    nms_size: int
 
 
 class DAD_baseline(BaseExtractor):
-    default_conf = {"num_keypoints": 512}
+    METHOD_TYPE = MethodType.DETECT_DESCRIBE
+    default_conf = DadConfig(
+        num_keypoints=1024,
+        resize=1024,
+        nms_size=3,
+    )
 
     def __init__(self, conf={}):
         self.num_keypoints = conf.get("num_keypoints", self.default_conf["num_keypoints"])
@@ -14,21 +30,29 @@ class DAD_baseline(BaseExtractor):
         self.DEV = get_best_device()
         self.matcher = NearestNeighborMatcher()
 
-    def detect(self, img, return_dict=None):
-        img = img.to(self.DEV)
+    def detect(self, image, return_dict=None):
+        img = image.to(self.DEV)
 
         mkpts = self.detector.detect({"image": img}, num_keypoints=self.num_keypoints)["keypoints"]
         mkpts = self.detector.to_pixel_coords(mkpts, img.shape[-2], img.shape[-1])
 
         if return_dict:
-            return {"mkpts": mkpts[0]}
-        return mkpts[0]
+            return {"mkpts": mkpts}
+        return mkpts
 
-    def detectAndCompute(self, img, return_dict=None):
-        raise NotImplementedError("detectAndCompute is not implemented for DAD_baseline")
+    def detectAndCompute(self, image, return_dict=None):
+        keypoints = self.detect(image, return_dict=False)
+        B, _, _, _ = image.shape
 
-    def compute(self, image, cv_kps):
-        raise NotImplementedError("compute is not implemented for DAD_baseline")
+        descriptors = torch.zeros(B, keypoints.shape[1], 256, device=keypoints.device)
+        warnings.warn("DAD does not compute descriptors; returning zero descriptors.")
+
+        if return_dict:
+            return {"keypoints": keypoints, "descriptors": descriptors}
+        return keypoints, descriptors
+
+    def compute(self, image, keypoints):
+        raise NotImplementedError
 
     @property
     def has_detector(self):

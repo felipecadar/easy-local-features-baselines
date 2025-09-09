@@ -10,6 +10,7 @@ available_extractors = [
     "alike",
     "aliked",
     "d2net",
+    "dad",
     # 'dalf',  # disabled in tests due to formatting issues; re-enable once fixed
     "deal",
     "dedode",
