@@ -1,5 +1,7 @@
-from typing import Optional
+from typing import Optional, TypedDict
 
+import torch
+from torch import nn
 from omegaconf import OmegaConf
 
 from ..matching.nearest_neighbor import NearestNeighborMatcher
@@ -57,9 +59,6 @@ Original code: github.com/MagicLeapResearch/SuperPointPretrainedNetwork
 
 Adapted by Philipp Lindenberger (Phil26AT)
 """
-
-import torch
-from torch import nn
 
 
 def pad_to_length(
@@ -322,9 +321,19 @@ class Net(nn.Module):
         return pred
 
 
+class SuperPointConfig(TypedDict):
+    top_k: int
+    sparse_outputs: bool
+    dense_outputs: bool
+    nms_radius: int
+    refinement_radius: int
+    detection_threshold: float
+    remove_borders: int
+    legacy_sampling: bool
+
 class SuperPoint_baseline(BaseExtractor):
     METHOD_TYPE = MethodType.DETECT_DESCRIBE
-    default_conf = {
+    default_conf: SuperPointConfig = {
         "top_k": -1,
         "sparse_outputs": True,
         "dense_outputs": False,
@@ -339,7 +348,7 @@ class SuperPoint_baseline(BaseExtractor):
         "https://github.com/magicleap/SuperGluePretrainedNetwork/raw/master/models/weights/superpoint_v1.pth"  # noqa: E501
     )
 
-    def __init__(self, conf={}):
+    def __init__(self, conf: SuperPointConfig = {}):
         self.conf = conf = OmegaConf.merge(OmegaConf.create(self.default_conf), conf)
         self.device = torch.device("cpu")
         self.matcher = NearestNeighborMatcher()
@@ -382,7 +391,7 @@ class SuperPoint_baseline(BaseExtractor):
 
 
 if __name__ == "__main__":
-    from easy_local_features.utils import io, ops, vis
+    from easy_local_features.utils import io, ops
 
     method = SuperPoint_baseline({"legacy_sampling": False})
 

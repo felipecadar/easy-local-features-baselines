@@ -9,6 +9,7 @@ Just some scripts to make things easier for the local features baselines.
 > The maintainers provide NO warranty, NO guarantee of license correctness, and accept NO liability for misuse. This notice and any summaries are **not legal advice**. If in doubt, consult qualified counsel.
 >
 > See: [`LICENSES.md`](LICENSES.md) for an overview and links to included full license texts.
+> Built with DINOv3.
 
 # Installation
 
@@ -180,6 +181,47 @@ vis.save("results/sosnet.png")
 ```
 
 Alternatively, if you already have keypoints, call `compute(img, keypoints)` and perform matching yourself.
+
+### Detector ensemble (combine multiple detectors)
+
+You can aggregate several detectors into one via `EnsembleDetector`. It runs each detector per image, merges keypoints, optionally deduplicates overlapping points, and behaves like a single detector. This is useful to mix classical and learned detectors.
+
+```python
+from easy_local_features.feature import EnsembleDetector, EnsembleDetectorConfig
+from easy_local_features.feature.baseline_orb import ORB_baseline
+from easy_local_features.feature.baseline_superpoint import SuperPoint_baseline
+from easy_local_features.utils import io, vis
+
+img0 = io.fromPath("test/assets/megadepth0.jpg")
+img1 = io.fromPath("test/assets/megadepth1.jpg")
+
+# Build individual detectors (any class exposing detector.detect(image) -> [1,N,2] or [N,2])
+orb = ORB_baseline({"top_k": 1024})
+sp  = SuperPoint_baseline({"top_k": 1024, "legacy_sampling": False})
+
+# Optional config: deduplicate overlapping kpts (rounded to pixel), sort, cap total
+cfg = EnsembleDetectorConfig(deduplicate=True, sort=True, max_keypoints=2048)
+detector = EnsembleDetector([orb, sp], cfg)
+
+# Use as a detector in any descriptor-only pipeline
+from easy_local_features import getExtractor
+desc = getExtractor("sosnet")  # or "tfeat"
+desc.addDetector(detector)
+out = desc.match(img0, img1)
+
+vis.plot_pair(img0, img1, title="SOSNet + (ORB ⊕ SuperPoint)")
+vis.plot_matches(out["mkpts0"], out["mkpts1"]) 
+vis.save("results/ensemble_desc.png")
+
+# Or call detector.detect directly (single or batch)
+kps0 = detector.detect(img0)  # [1, N, 2]
+kpsb = detector.detect(torch.stack([img0, img1]))  # [B, Nmax, 2] padded per-image
+```
+
+Notes
+- The ensemble loops over the batch and runs each detector per image (safe for OpenCV-based detectors like ORB).
+- Deduplication rounds to the nearest pixel before uniquifying across detectors; disable with `deduplicate=False`.
+- `max_keypoints` caps the final number per image (simple deterministic subsampling when needed).
 
 ### 3) End-to-end matchers
 

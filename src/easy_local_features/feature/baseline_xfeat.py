@@ -6,16 +6,30 @@ from ..matching.nearest_neighbor import NearestNeighborMatcher
 from omegaconf import OmegaConf
 from .basemodel import BaseExtractor, MethodType
 from ..utils import ops
+from typing import TypedDict
+
+
+class XFeatConfig(TypedDict):
+    model_name: str
+    top_k: int
+    detection_threshold: float
+    nms_radius: int
+    width_confidence: float
+    min_corner_score: float
 
 
 class XFeat_baseline(BaseExtractor):
     METHOD_TYPE = MethodType.DETECT_DESCRIBE
-    default_conf = {
+    default_conf: XFeatConfig = {
+        "model_name": "xfeat",
         "top_k": 2048,
         "detection_threshold": 0.2,
+        "nms_radius": 4,
+        "width_confidence": 0.5,
+        "min_corner_score": 0.0,
     }
 
-    def __init__(self, conf={}):
+    def __init__(self, conf: XFeatConfig = {}):
         self.conf = conf = OmegaConf.merge(OmegaConf.create(self.default_conf), conf)
         device = "cpu"
         self.device = torch.device(device)
@@ -122,7 +136,7 @@ class XFeat_baseline(BaseExtractor):
 
 
 if __name__ == "__main__":
-    from easy_local_features.utils import io, vis, ops
+    from easy_local_features.utils import io, ops
 
     method = XFeat_baseline()
 

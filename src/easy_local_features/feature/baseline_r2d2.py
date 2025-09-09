@@ -32,15 +32,33 @@ from ..matching.nearest_neighbor import NearestNeighborMatcher
 from ..utils import ops
 from ..utils.download import downloadModel
 from .basemodel import BaseExtractor, MethodType
+from typing import TypedDict, Optional
+
+
+class R2D2Config(TypedDict):
+    model_name: str
+    top_k: int
+    detection_threshold: float
+    nms_radius: int
+    rel_thr: float
+    rep_thr: float
+    scale_f: float
+    min_scale: float
+    max_scale: float
+    min_size: int
+    max_size: int
+    pretrained_weigts: str
+    model_path: Optional[str]
 
 
 class R2D2_baseline(BaseExtractor):
     METHOD_TYPE = MethodType.DETECT_DESCRIBE
 
-    default_conf = {
+    default_conf: R2D2Config = {
+        "model_name": "r2d2",
         "top_k": 2048,
-        "pretrained_weigts": "r2d2_WASF_N16",
-        "model_path": None,
+        "detection_threshold": 0.2,
+        "nms_radius": 4,
         "rel_thr": 0.7,
         "rep_thr": 0.7,
         "scale_f": 2**0.25,
@@ -48,9 +66,11 @@ class R2D2_baseline(BaseExtractor):
         "max_scale": 1,
         "min_size": 256,
         "max_size": 1024,
+        "pretrained_weigts": "r2d2_WASF_N16",
+        "model_path": None,
     }
 
-    def __init__(self, conf={}):
+    def __init__(self, conf: R2D2Config = {}):
         self.conf = conf = OmegaConf.merge(OmegaConf.create(self.default_conf), conf)
 
         self.top_k = conf.top_k

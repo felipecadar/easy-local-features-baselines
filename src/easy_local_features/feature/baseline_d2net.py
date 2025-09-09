@@ -9,17 +9,29 @@ from ..utils.download import downloadModel
 from ..matching.nearest_neighbor import NearestNeighborMatcher
 
 from omegaconf import OmegaConf
+from typing import TypedDict
+
+
+class D2NetConfig(TypedDict):
+    model_name: str
+    top_k: int
+    detection_threshold: float
+    nms_radius: int
+    use_relu: bool
 
 
 class D2Net_baseline(BaseExtractor):
     METHOD_TYPE = MethodType.DETECT_DESCRIBE
 
-    default_conf = {
+    default_conf: D2NetConfig = {
+        "model_name": "d2net",
         "top_k": 2048,
+        "detection_threshold": 0.2,
+        "nms_radius": 4,
         "use_relu": True,
     }
 
-    def __init__(self, conf={}):
+    def __init__(self, conf: D2NetConfig = {}):
         self.conf = conf = OmegaConf.merge(OmegaConf.create(self.default_conf), conf)
         top_kps = conf.top_k
         use_relu = conf.use_relu
@@ -109,7 +121,7 @@ class D2Net_baseline(BaseExtractor):
         return keypoints
 
     def compute(self, img, keypoints):
-        raise NotImplemented
+        raise NotImplementedError
 
     def to(self, device):
         self.model.to(device)

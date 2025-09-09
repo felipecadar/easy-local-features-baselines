@@ -6,13 +6,28 @@ from omegaconf import OmegaConf
 from ..matching.nearest_neighbor import NearestNeighborMatcher
 from ..utils import ops
 from .basemodel import BaseExtractor, MethodType
+from typing import TypedDict
+
+
+class SOSNetConfig(TypedDict):
+    model_name: str
+    top_k: int
+    detection_threshold: float
+    nms_radius: int
+    desc_dim: int
 
 
 class SOSNet_baseline(BaseExtractor):
     METHOD_TYPE = MethodType.DESCRIPTOR_ONLY
-    default_conf = {}
+    default_conf: SOSNetConfig = {
+        "model_name": "sosnet",
+        "top_k": 2048,
+        "detection_threshold": 0.2,
+        "nms_radius": 4,
+        "desc_dim": 128,
+    }
 
-    def __init__(self, conf={}):
+    def __init__(self, conf: SOSNetConfig = {}):
         self.conf = conf = OmegaConf.merge(OmegaConf.create(self.default_conf), conf)
         self.DEV = torch.device("cpu")
         self.model = SOSNet().to(self.DEV)

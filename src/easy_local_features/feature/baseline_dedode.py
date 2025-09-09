@@ -4,6 +4,17 @@ from omegaconf import OmegaConf
 
 from ..utils import ops
 from .basemodel import BaseExtractor
+from typing import TypedDict
+
+
+class DeDoDeConfig(TypedDict):
+    model_name: str
+    top_k: int
+    detection_threshold: float
+    nms_radius: int
+    detector_weights: str
+    descriptor_weights: str
+    amp_dtype: str
 
 
 def dual_softmax_matcher(desc_A, desc_B, inv_temperature=1, normalize=False):
@@ -60,13 +71,17 @@ class DualSoftMaxMatcher(torch.nn.Module):
 class DeDoDe_baseline(BaseExtractor):
     # detector_weights: The weights to load for the detector. One of 'L-upright', 'L-C4', 'L-SO2'.
     # descriptor_weights: The weights to load for the descriptor. One of 'B-upright', 'B-C4', 'B-SO2', 'G-upright', 'G-C4'.
-    default_conf = {
+    default_conf: DeDoDeConfig = {
+        "model_name": "dedode",
         "top_k": 2048,
+        "detection_threshold": 0.2,
+        "nms_radius": 4,
         "detector_weights": "L-upright",  # 'L-upright', 'L-C4', 'L-SO2'
         "descriptor_weights": "B-upright",  # 'B-upright', 'B-C4', 'B-SO2', 'G-upright', 'G-C4'
+        "amp_dtype": "float16",
     }
 
-    def __init__(self, conf={}):
+    def __init__(self, conf: DeDoDeConfig = {}):
         self.conf = conf = OmegaConf.merge(OmegaConf.create(self.default_conf), conf)
         self.DEV = torch.device("cpu")
         self.model = DeDoDe.from_pretrained(
@@ -90,7 +105,7 @@ class DeDoDe_baseline(BaseExtractor):
         return self.detectAndCompute(img)[0]
 
     def compute(self, image, keypoints):
-        raise NotImplemented
+        raise NotImplementedError
 
     def to(self, device):
         self.model.to(device)
