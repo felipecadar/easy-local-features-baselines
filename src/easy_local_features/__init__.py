@@ -16,6 +16,7 @@ available_extractors = [
     "delf",
     "disk",
     "r2d2",
+    "rekd",
     "sosnet",
     "superpoint",
     "tfeat",
@@ -24,7 +25,6 @@ available_extractors = [
     "roma",
     "orb",
     "desc_reasoning",
-    "dad",
 ]
 
 

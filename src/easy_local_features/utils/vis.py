@@ -11,6 +11,11 @@ default_colors = {
     'g': '#4ade80',
     'r': '#ef4444',
     'b': '#3b82f6',
+    'y': '#fbbf24',  # yellow
+    'p': '#a855f7',  # purple
+    'o': '#fb923c',  # orange
+    'c': '#06b6d4',  # cyan
+    'm': '#ec4899',  # magenta
 }
 
 def draw_keypoints(image, keypoints, color='g', size=5):
@@ -21,7 +26,12 @@ def draw_keypoints(image, keypoints, color='g', size=5):
         kps = keypoints[B].unsqueeze(0)
         im = image[B]
         
-        im = torchvision.utils.draw_keypoints(im, kps, radius=size, colors=default_colors[color])
+        if color in default_colors:
+            col = default_colors[color]
+        else:
+            col = color
+        
+        im = torchvision.utils.draw_keypoints(im, kps, radius=size, colors=col)
         
         imgs.append(im)
     return torch.stack(imgs)
@@ -101,8 +111,12 @@ def plot_keypoints(keypoints0=None, keypoints1=None, fig=None, ax=None, color=No
     
     if keypoints0 is not None:        
         if all_colors is None:
-            if isinstance(color, str) and color in default_colors:
-                all_colors0 = [default_colors[color] for _ in range(len(keypoints0))]
+            if isinstance(color, str):
+                if color in default_colors:
+                    col = default_colors[color]
+                else:
+                    col = color
+                all_colors0 = [col for _ in range(len(keypoints0))]
             else:
                 all_colors0 = [rainbow(i / len(keypoints0)) for i in range(len(keypoints0))]
         else:
@@ -117,8 +131,12 @@ def plot_keypoints(keypoints0=None, keypoints1=None, fig=None, ax=None, color=No
 
     if keypoints1 is not None:
         if all_colors is None:
-            if isinstance(color, str) and color in default_colors:
-                all_colors1 = [default_colors[color] for _ in range(len(keypoints1))]
+            if isinstance(color, str):
+                if color in default_colors:
+                    col = default_colors[color]
+                else:
+                    col = color
+                all_colors1 = [col for _ in range(len(keypoints1))]
             else:
                 all_colors1 = [rainbow(i / len(keypoints1)) for i in range(len(keypoints1))]
         else:

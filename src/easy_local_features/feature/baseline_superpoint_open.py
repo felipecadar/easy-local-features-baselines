@@ -1,13 +1,14 @@
+from collections import OrderedDict
+from pathlib import Path
+from typing import Optional, Tuple
+
 import torch
-import numpy as np
-import torch.nn.functional as F
-from functools import partial
-import cv2, os, wget
+import torch.nn as nn
+from omegaconf import OmegaConf
 
 from ..matching.nearest_neighbor import NearestNeighborMatcher
-from omegaconf import OmegaConf
-from .basemodel import BaseExtractor, MethodType
 from ..utils import ops
+from .basemodel import BaseExtractor, MethodType
 
 """PyTorch implementation of the SuperPoint model,
    derived from the TensorFlow re-implementation (2018).
@@ -17,13 +18,6 @@ from ..utils import ops
    available under the MIT license.
 """
 
-from collections import OrderedDict
-from pathlib import Path
-
-from typing import Tuple, Optional
-
-import torch
-import torch.nn as nn
 
 def sample_descriptors(keypoints, descriptors, s: int = 8):
     """Interpolate descriptors at keypoint locations"""
@@ -33,9 +27,7 @@ def sample_descriptors(keypoints, descriptors, s: int = 8):
     descriptors = torch.nn.functional.grid_sample(
         descriptors, keypoints.view(b, 1, -1, 2), mode="bilinear", align_corners=False
     )
-    descriptors = torch.nn.functional.normalize(
-        descriptors.reshape(b, c, -1), p=2, dim=1
-    )
+    descriptors = torch.nn.functional.normalize(descriptors.reshape(b, c, -1), p=2, dim=1)
     return descriptors
 
 
@@ -43,9 +35,7 @@ def batched_nms(scores, nms_radius: int):
     assert nms_radius >= 0
 
     def max_pool(x):
-        return torch.nn.functional.max_pool2d(
-            x, kernel_size=nms_radius * 2 + 1, stride=1, padding=nms_radius
-        )
+        return torch.nn.functional.max_pool2d(x, kernel_size=nms_radius * 2 + 1, stride=1, padding=nms_radius)
 
     zeros = torch.zeros_like(scores)
     max_mask = scores == max_pool(scores)
@@ -67,9 +57,7 @@ def select_top_k_keypoints(keypoints, scores, k):
 class VGGBlock(nn.Sequential):
     def __init__(self, c_in, c_out, kernel_size, relu=True):
         padding = (kernel_size - 1) // 2
-        conv = nn.Conv2d(
-            c_in, c_out, kernel_size=kernel_size, stride=1, padding=padding
-        )
+        conv = nn.Conv2d(c_in, c_out, kernel_size=kernel_size, stride=1, padding=padding)
         activation = nn.ReLU(inplace=True) if relu else nn.Identity()
         bn = nn.BatchNorm2d(c_out, eps=0.001)
         super().__init__(
@@ -81,8 +69,8 @@ class VGGBlock(nn.Sequential):
                 ]
             )
         )
-        
-        
+
+
 def pad_to_length(
     x,
     length: int,
@@ -123,6 +111,7 @@ def pad_to_length(
         raise ValueError(mode)
     return torch.cat([x, xn], dim=pad_dim)
 
+
 def pad_and_stack(
     sequences: list[torch.Tensor],
     length: Optional[int] = None,
@@ -135,14 +124,14 @@ def pad_and_stack(
     y = torch.stack([pad_to_length(x, length, pad_dim, **kwargs) for x in sequences], 0)
     return y
 
+
 class OpenSPModel(nn.Module):
-    
     checkpoint_url = "https://github.com/rpautrat/SuperPoint/raw/master/weights/superpoint_v6_from_tf.pth"  # noqa: E501
-    
+
     def __init__(self, conf):
         super().__init__()
         self.conf = conf
-            
+
         self.stride = 2 ** (len(self.conf.channels) - 2)
         channels = [1, *self.conf.channels[:-1]]
 
@@ -169,25 +158,21 @@ class OpenSPModel(nn.Module):
         else:
             state_dict = torch.hub.load_state_dict_from_url(self.checkpoint_url)
         self.load_state_dict(state_dict)
-        
+
     def forward(self, data):
         image = data["image"]
         if image.shape[1] == 3:  # RGB
             scale = image.new_tensor([0.299, 0.587, 0.114]).view(1, 3, 1, 1)
             image = (image * scale).sum(1, keepdim=True)
         features = self.backbone(image)
-        descriptors_dense = torch.nn.functional.normalize(
-            self.descriptor(features), p=2, dim=1
-        )
+        descriptors_dense = torch.nn.functional.normalize(self.descriptor(features), p=2, dim=1)
 
         # Decode the detection scores
         scores = self.detector(features)
         scores = torch.nn.functional.softmax(scores, 1)[:, :-1]
         b, _, h, w = scores.shape
         scores = scores.permute(0, 2, 3, 1).reshape(b, h, w, self.stride, self.stride)
-        scores = scores.permute(0, 1, 3, 2, 4).reshape(
-            b, h * self.stride, w * self.stride
-        )
+        scores = scores.permute(0, 1, 3, 2, 4).reshape(b, h * self.stride, w * self.stride)
         scores = batched_nms(scores, self.conf.nms_radius)
 
         # Discard keypoints near the image borders
@@ -236,9 +221,7 @@ class OpenSPModel(nn.Module):
                     data.get("image_size", torch.tensor(image.shape[-2:])).min().item(),
                 ),
             )
-            scores = pad_and_stack(
-                scores, self.conf.top_k, -1, mode="zeros"
-            )
+            scores = pad_and_stack(scores, self.conf.top_k, -1, mode="zeros")
         else:
             keypoints = torch.stack(keypoints, 0)
             scores = torch.stack(scores, 0)
@@ -247,10 +230,7 @@ class OpenSPModel(nn.Module):
             # Batch sampling of the descriptors
             desc = sample_descriptors(keypoints, descriptors_dense, self.stride)
         else:
-            desc = [
-                sample_descriptors(k[None], d[None], self.stride)[0]
-                for k, d in zip(keypoints, descriptors_dense)
-            ]
+            desc = [sample_descriptors(k[None], d[None], self.stride)[0] for k, d in zip(keypoints, descriptors_dense)]
 
         pred = {
             "keypoints": keypoints + 0.5,
@@ -274,10 +254,10 @@ class SuperPoint_baseline(BaseExtractor):
         "channels": [64, 64, 128, 128, 256],
         "weights": None,  # local path of pretrained weights
     }
-    
+
     def __init__(self, conf={}):
         self.conf = conf = OmegaConf.merge(OmegaConf.create(self.default_conf), conf)
-        self.device   = torch.device('cpu')
+        self.device = torch.device("cpu")
         self.matcher = NearestNeighborMatcher()
         self.model = OpenSPModel(conf)
         self.model.to(self.device)
@@ -285,15 +265,15 @@ class SuperPoint_baseline(BaseExtractor):
 
     def detectAndCompute(self, img, return_dict=None):
         img = ops.prepareImage(img, gray=True).to(self.device)
-        response = self.model({'image': img}) # 'keypoints', 'keypoint_scores', 'descriptors'
-        
+        response = self.model({"image": img})  # 'keypoints', 'keypoint_scores', 'descriptors'
+
         if return_dict:
             return response
-        
-        return response['keypoints'], response['descriptors']
+
+        return response["keypoints"], response["descriptors"]
 
     def detect(self, img, op=None):
-        return self.detectAndCompute(img, return_dict=True)['keypoints']
+        return self.detectAndCompute(img, return_dict=True)["keypoints"]
 
     def compute(self, img, keypoints):
         raise NotImplemented
@@ -302,24 +282,25 @@ class SuperPoint_baseline(BaseExtractor):
         self.device = device
         self.model.to(device)
         return self
-    
+
     @property
     def has_detector(self):
         return True
-    
-    
+
+
 if __name__ == "__main__":
-    from easy_local_features.utils import io, vis, ops
+    from easy_local_features.utils import io, ops, vis
+
     method = SuperPoint_baseline()
     # method.to('mps')
-    
+
     img0 = io.fromPath("test/assets/megadepth0.jpg")
     img1 = io.fromPath("test/assets/megadepth1.jpg")
-    
+
     nn_matches = method.match(img0, img1)
-    
+
     vis.plot_pair(img0, img1)
-    vis.plot_matches(nn_matches['mkpts0'], nn_matches['mkpts1'])
+    vis.plot_matches(nn_matches["mkpts0"], nn_matches["mkpts1"])
     vis.add_text("SuperPoint Open")
 
     vis.show()

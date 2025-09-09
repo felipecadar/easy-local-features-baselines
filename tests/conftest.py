@@ -4,6 +4,7 @@ Now that tests live in a top-level ``tests/`` folder (outside ``src``), we need
 to ensure ``src`` is on ``sys.path`` when invoking ``pytest`` without an
 editable install.
 """
+
 from __future__ import annotations
 import sys
 from pathlib import Path

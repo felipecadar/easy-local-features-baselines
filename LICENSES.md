@@ -47,6 +47,7 @@ The verbatim license texts for the baselines explicitly vendored here are kept a
 - licenses/LICENSE_R2D2.txt
 - licenses/LICENSE_ROMA.txt
 - licenses/LICENSE_SUPERGLUE.txt
+- licenses/LICENSE_DINOv3.txt
 
 If you add or update a baseline, also add (or refresh) its license file and extend the summary table. Avoid renaming the original license file if upstream references a specific filename.
 

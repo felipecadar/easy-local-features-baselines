@@ -1,0 +1,48 @@
+site_name: easy-local-features
+site_url: https://felipecadar.github.io/easy-local-features-baselines/
+repo_url: https://github.com/felipecadar/easy-local-features-baselines
+theme:
+  name: material
+  features:
+    - navigation.tabs
+    - content.code.copy
+plugins:
+  - search
+  - mkdocstrings:
+      default_handler: python
+      handlers:
+        python:
+          # Ensure mkdocstrings can find the package in src/
+          paths:
+            - src
+          options:
+            show_source: true
+            docstring_style: google
+            separate_signature: true
+nav:
+  - Home: index.md
+  - Getting Started: getting-started.md
+  - User Guide:
+      - Features overview: user-guide/features.md
+      - Ensemble: user-guide/ensemble.md
+      - Matching: user-guide/matching.md
+      - I/O and Ops: user-guide/io-ops.md
+  - How-to:
+      - Add a new extractor: how-to/add-a-new-extractor.md
+      - Run on GPU: how-to/run-on-gpu.md
+      - Run benchmarks: how-to/run-benchmarks.md
+  - Reference:
+      - Extractors: reference/extractors.md
+      - Matchers: reference/matchers.md
+  - API:
+      - Feature: api/feature.md
+      - Matching: api/matching.md
+      - Utils: api/utils.md
+  # - Gallery: gallery.md
+  - Changelog: changelog.md
+  - License: license.md
+
+# Optional: enable versioned docs with mike later
+# extra:
+#   version:
+#     provider: mike

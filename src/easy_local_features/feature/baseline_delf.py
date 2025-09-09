@@ -1,12 +1,21 @@
 import tensorflow as tf
 import tensorflow_hub as hub
+import torch
+from omegaconf import OmegaConf
+from typing import TypedDict
 
 from ..matching.nearest_neighbor import NearestNeighborMatcher
-from omegaconf import OmegaConf
-from .basemodel import BaseExtractor, MethodType
 from ..utils import ops
+from .basemodel import BaseExtractor, MethodType
 
-import torch
+
+class DELFConfig(TypedDict):
+    model_name: str
+    top_k: int
+    detection_threshold: float
+    nms_radius: int
+    use_pca: bool
+    use_whitening: bool
 
 
 class DELF_baseline(BaseExtractor):
@@ -21,16 +30,21 @@ class DELF_baseline(BaseExtractor):
     """
 
     METHOD_TYPE = MethodType.DETECT_DESCRIBE
-    default_config = {
+    default_config: DELFConfig = {
+        "model_name": "delf",
         "top_k": 2048,
+        "detection_threshold": 0.2,
+        "nms_radius": 4,
+        "use_pca": False,
+        "use_whitening": False,
     }
 
-    def __init__(self, conf={}):
+    def __init__(self, conf: DELFConfig = {}):
         self.conf = conf = OmegaConf.merge(OmegaConf.create(self.default_config), conf)
         # Load TF Hub model once; returns a SavedModel signature callable.
-        self.model = hub.load('https://tfhub.dev/google/delf/1').signatures['default']
+        self.model = hub.load("https://tfhub.dev/google/delf/1").signatures["default"]
         self.top_k = conf.top_k
-        self.DEV = torch.device('cpu')
+        self.DEV = torch.device("cpu")
         self.matcher = NearestNeighborMatcher()
 
     # Descriptor-only API parts (not used directly for DELF)
@@ -57,9 +71,9 @@ class DELF_baseline(BaseExtractor):
         results = self.run_delf(img)
 
         # Flip (y, x) -> (x, y); copy() avoids negative stride issue when converting to torch
-        locations = results['locations'].numpy()[:, ::-1].copy()
-        descriptors = results['descriptors'].numpy()
-        scales = results['scales'].numpy()
+        locations = results["locations"].numpy()[:, ::-1].copy()
+        descriptors = results["descriptors"].numpy()
+        scales = results["scales"].numpy()
 
         keypoints = torch.as_tensor(locations, dtype=torch.float32, device=self.DEV)
         descriptors = torch.as_tensor(descriptors, dtype=torch.float32, device=self.DEV)
@@ -68,9 +82,9 @@ class DELF_baseline(BaseExtractor):
         # Add batch dimension expected downstream: [1, N, 2] / [1, N, D]
         if return_dict:
             return {
-                'keypoints': keypoints.unsqueeze(0),
-                'descriptors': descriptors.unsqueeze(0),
-                'scales': scales.unsqueeze(0),
+                "keypoints": keypoints.unsqueeze(0),
+                "descriptors": descriptors.unsqueeze(0),
+                "scales": scales.unsqueeze(0),
             }
         return keypoints.unsqueeze(0), descriptors.unsqueeze(0)
 

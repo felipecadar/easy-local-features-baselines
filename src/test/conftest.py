@@ -7,6 +7,7 @@ repository root won't put the `src/` directory on `sys.path`, so
 This file prepends the absolute path to `src/` so tests can import the package
 when executed via `pytest` directly (e.g. `uv tool run pytest`).
 """
+
 from __future__ import annotations
 import sys
 from pathlib import Path

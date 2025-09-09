@@ -9,10 +9,12 @@ from easy_local_features.utils import io, ops
 def test_desc_reasoning_detect_and_match():
     # Use smallest weights to reduce download time
     try:
-        method = Desc_Reasoning_baseline({
-            "pretrained": "xfeat-3_layers",
-            "device": "cpu",
-        })
+        method = Desc_Reasoning_baseline(
+            {
+                "pretrained": "xfeat-3_layers",
+                "device": "cpu",
+            }
+        )
     except Exception as e:
         pytest.skip(f"Skipping due to environment/network issue: {e}")
 
