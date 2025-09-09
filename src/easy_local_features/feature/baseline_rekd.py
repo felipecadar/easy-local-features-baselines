@@ -15,6 +15,7 @@ from easy_local_features.submodules.git_rekd.model import (
     apply_nms,
     upsample_pyramid,
 )
+import warnings
 
 
 def fix_randseed(randseed):
@@ -271,6 +272,7 @@ class REKD_baseline(BaseExtractor):
 
         # For now, we'll return empty descriptors since REKD is primarily a detector
         # In a full implementation, you'd compute descriptors here
+        warnings.warn("REKD is primarily a keypoint detector; returning placeholder descriptors.")
         B, C, H, W = image.shape
         num_kpts = keypoints.shape[1]
         descriptors = torch.zeros(B, num_kpts, 256, device=self.device)  # Placeholder descriptors
@@ -290,6 +292,7 @@ class REKD_baseline(BaseExtractor):
         """Compute descriptors for given keypoints"""
         # REKD is primarily a detector, so we return placeholder descriptors
         # In a full implementation, you'd compute actual descriptors
+        warnings.warn("REKD is primarily a keypoint detector; returning placeholder descriptors.")
         B = 1 if len(keypoints.shape) == 2 else keypoints.shape[0]
         num_kpts = keypoints.shape[-2]
         return torch.zeros(B, num_kpts, 256, device=self.device)
