@@ -17,7 +17,8 @@ class XFeat_baseline(BaseExtractor):
 
     def __init__(self, conf={}):
         self.conf = conf = OmegaConf.merge(OmegaConf.create(self.default_conf), conf)
-        self.device = torch.device("cpu")
+        device = "cpu"
+        self.device = torch.device(device)
         self.model = torch.hub.load(
             "verlab/accelerated_features",
             "XFeat",
@@ -27,10 +28,13 @@ class XFeat_baseline(BaseExtractor):
         )
         self.model.eval()
         self.model.dev = self.device
+        self.model.to(device)
+        print(f"Loaded XFeat model to {self.device}")
+        print(f"Model device: {self.model.dev}")
         self.matcher = NearestNeighborMatcher()
 
     def detectAndCompute(self, img, return_dict=None):
-        img = ops.prepareImage(img).to(self.device)
+        img = ops.prepareImage(img).to(self.model.dev)
         response = self.model.detectAndCompute(img, top_k=self.conf.top_k)
 
         # batch it
@@ -52,6 +56,7 @@ class XFeat_baseline(BaseExtractor):
         return batch_response["keypoints"], batch_response["descriptors"]
 
     def detect(self, img, op=None):
+        img = ops.prepareImage(img).to(self.device)
         return self.detectAndCompute(img, return_dict=True)["keypoints"]
 
     # def match(self, image1, image2):
