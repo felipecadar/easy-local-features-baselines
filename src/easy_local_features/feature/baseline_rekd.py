@@ -4,9 +4,9 @@ import os
 import numpy as np
 import torch
 from omegaconf import OmegaConf
-from ..matching.nearest_neighbor import NearestNeighborMatcher
-from .basemodel import BaseExtractor, MethodType
-from ..utils import ops
+from easy_local_features.matching.nearest_neighbor import NearestNeighborMatcher
+from easy_local_features.feature.basemodel import BaseExtractor, MethodType
+from easy_local_features.utils import ops, download
 from easy_local_features.submodules.git_rekd.model import (
     load_detector,
     apply_homography_to_points,
@@ -203,16 +203,16 @@ def get_config(jupyter=False):
 
     return args
 
-
+WEIGHTS = "https://github.com/felipecadar/easy-local-features-baselines/releases/download/redk/best_model.pt"
 class REKD_baseline(BaseExtractor):
     METHOD_TYPE = MethodType.DETECT_DESCRIBE
     default_conf = {
-        "num_points": 1500,
+        "num_keypoints": 1500,
         "pyramid_levels": 5,
         "upsampled_levels": 2,
         "border_size": 15,
         "nms_size": 15,
-        "weights": "./data/release_group36_f2_s2_t2.log/best_model.pt",
+        "weights": None,
         "resize": None,
     }
 
@@ -221,7 +221,7 @@ class REKD_baseline(BaseExtractor):
         self.conf = conf = OmegaConf.merge(OmegaConf.create(self.default_conf), conf)
 
         # configurations
-        self.default_num_points = conf.num_points
+        self.default_num_points = conf.num_keypoints
         self.pyramid_levels = conf.pyramid_levels
         self.upsampled_levels = conf.upsampled_levels
         self.resize = conf.resize
@@ -235,10 +235,10 @@ class REKD_baseline(BaseExtractor):
         # Create args object for model loading
         args = get_config()
         args.weights = conf.weights
-        if not os.path.isfile(args.weights):
-            raise ValueError(
-                f"Failed to find REKD weights at {args.weights}. Official weights can be downloaded from https://postechackr-my.sharepoint.com/:u:/g/personal/ljm1121_postech_ac_kr/EXvKPAR3p7pOiN9fiG1E-7kBrJapaYvRKJqXKWMT3h4k5g?e=JFTWHn (password : rekd)"
-            )
+        if args.weights is None or (not os.path.isfile(args.weights)):
+            args.weights = str(download.downloadModel("redk", "release_group36_f2_s2_t2.log/best_model.pt", WEIGHTS))
+            print(f"Using default REKD weights from {args.weights}")
+
         args.resize = conf.resize
 
         self.model = load_detector(args, self.device)
@@ -261,41 +261,17 @@ class REKD_baseline(BaseExtractor):
         return kpts
 
     def detectAndCompute(self, image, return_dict=False):
-        """Main interface method for detection and description"""
-        image = ops.prepareImage(image).to(self.device)
-
-        # Convert from tensor format to numpy for the internal processing
-        img_np = image[0, 0].cpu().numpy() if len(image.shape) == 4 else image[0].cpu().numpy()
-
-        # Detect keypoints
-        keypoints = self._detect_keypoints(img_np)
-
-        # For now, we'll return empty descriptors since REKD is primarily a detector
-        # In a full implementation, you'd compute descriptors here
-        warnings.warn("REKD is primarily a keypoint detector; returning placeholder descriptors.")
-        B, C, H, W = image.shape
-        num_kpts = keypoints.shape[1]
-        descriptors = torch.zeros(B, num_kpts, 256, device=self.device)  # Placeholder descriptors
-
-        if return_dict:
-            return {"keypoints": keypoints, "descriptors": descriptors}
-
-        return keypoints, descriptors
+        return NotImplementedError
 
     def detect(self, image):
         """Detect keypoints only"""
         image = ops.prepareImage(image).to(self.device)
         img_np = image[0, 0].cpu().numpy() if len(image.shape) == 4 else image[0].cpu().numpy()
-        return self._detect_keypoints(img_np)
+        kps = self._detect_keypoints(img_np)
+        return kps
 
     def compute(self, image, keypoints):
-        """Compute descriptors for given keypoints"""
-        # REKD is primarily a detector, so we return placeholder descriptors
-        # In a full implementation, you'd compute actual descriptors
-        warnings.warn("REKD is primarily a keypoint detector; returning placeholder descriptors.")
-        B = 1 if len(keypoints.shape) == 2 else keypoints.shape[0]
-        num_kpts = keypoints.shape[-2]
-        return torch.zeros(B, num_kpts, 256, device=self.device)
+        return NotImplementedError
 
     def _detect_keypoints(self, image):
         """Internal method to detect keypoints"""
@@ -308,10 +284,8 @@ class REKD_baseline(BaseExtractor):
         score_maps, ori_maps = self._compute_score_maps(image)
         im_pts = self._estimate_keypoint_coordinates(score_maps, num_points=self.default_num_points)
         pixel_coords = im_pts[..., :2]
-
-        # Convert to normalized coordinates and proper tensor format
-        im_pts_n = self.to_normalized_coords(torch.from_numpy(pixel_coords)[None], H, W).to(self.device).float()
-        return im_pts_n
+        pixel_coords = torch.tensor(pixel_coords).to(self.device)
+        return pixel_coords
 
     def to(self, device):
         """Move model to device"""
@@ -348,7 +322,7 @@ class REKD_baseline(BaseExtractor):
         return score_maps, ori_maps
 
     def _obtain_feature_maps(self, im, key_idx, score_maps, ori_maps):
-        im = torch.tensor(im).unsqueeze(0).to(torch.float32).cuda()
+        im = torch.tensor(im).unsqueeze(0).to(torch.float32).to(self.device)
         im_scores, ori_map = self.model(im)
         im_scores = remove_borders(im_scores[0, 0, :, :].cpu().detach().numpy(), borders=self.border_size)
 
@@ -398,3 +372,22 @@ class REKD_baseline(BaseExtractor):
         im_pts = im_pts[:num_points]
 
         return im_pts
+
+if __name__ == "__main__":
+    from easy_local_features.utils import io, vis, ops
+
+    detector = REKD_baseline({"num_keypoints": 512})
+
+    img0 = io.fromPath("tests/assets/megadepth0.jpg")
+    img1 = io.fromPath("tests/assets/megadepth1.jpg")
+    
+    img0, _ = ops.resize_short_edge(img0, 480)
+    img1, _ = ops.resize_short_edge(img1, 480)
+
+    kps0 = detector.detect(img0)
+    kps1 = detector.detect(img1)
+
+    vis.plot_pair(img0, img1)
+    vis.plot_keypoints(keypoints0=kps0)
+    vis.plot_keypoints(keypoints1=kps1)
+    vis.show()

@@ -27,7 +27,7 @@ class DINOv2_baseline(BaseExtractor):
         self.matcher = NearestNeighborMatcher()
         try:
             self.model = torch.hub.load("facebookresearch/dinov2", conf.weights)
-        except:
+        except Exception:
             self.model = torch.hub.load("facebookresearch/dinov2", conf.weights, force_reload=True)
 
     def sample_features(self, keypoints, features, s=14, mode="bilinear"):
@@ -47,10 +47,10 @@ class DINOv2_baseline(BaseExtractor):
         return features
 
     def detectAndCompute(self, img, return_dict=None):
-        raise NotImplemented
+        raise NotImplementedError
     
     def detect(self, img, op=None):
-        raise NotImplemented
+        raise NotImplementedError
 
     def compute(self, img, keypoints=None, return_dict=False):
         img = ops.prepareImage(img).to(self.device)

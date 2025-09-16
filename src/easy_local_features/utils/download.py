@@ -10,9 +10,16 @@ def getCache(namespace):
     return cache_path
 
 def downloadModel(namespace, model_name, url, force=False):
+    if "pth" not in model_name and "pt" not in model_name:
+        model_name += ".pth"
+
     cache_path = getCache(namespace)
-    file_model_name = url.split('/')[-1]
-    cache_path = cache_path / (model_name + '.pth')
+    cache_path = cache_path / model_name
+    
+    dirpath = cache_path.parent
+    if not dirpath.exists():
+        os.makedirs(str(dirpath), exist_ok=True)
+    
     if not cache_path.exists() or force:
         print(f"Downloading {model_name} model... from {url}")
         torch.hub.download_url_to_file(url, str(cache_path))

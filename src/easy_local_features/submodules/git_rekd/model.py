@@ -279,10 +279,12 @@ class REKD(torch.nn.Module):
         return features_t, features_o
 
     def _forwarding_networks_divide_grid(self, input_data_resized):
+        device = input_data_resized.device
+        
         ## for inference time high resolution image. # spatial grid 4
         B, _, H_resized, W_resized = input_data_resized.shape
-        features_t = torch.zeros(B, self.dim_third, H_resized, W_resized).cuda()
-        features_o = torch.zeros(B, self.group_size, H_resized, W_resized).cuda()
+        features_t = torch.zeros(B, self.dim_third, H_resized, W_resized).to(device)
+        features_o = torch.zeros(B, self.group_size, H_resized, W_resized).to(device)
         h_divide = 2
         w_divide = 2
         for idx in range(h_divide):
@@ -340,7 +342,7 @@ class REKD(torch.nn.Module):
 def load_detector(args, device):
     args.group_size, args.dim_first, args.dim_second, args.dim_third = model_parsing(args)
     model1 = REKD(args, device)
-    model1.load_state_dict(torch.load(args.weights, weights_only=True))
+    model1.load_state_dict(torch.load(args.weights, weights_only=True, map_location=device))
     model1.export()
     model1.eval()
     model1.to(device)  ## use GPU
@@ -350,11 +352,14 @@ def load_detector(args, device):
 
 ## Load our model
 def model_parsing(args):
-    group_size = args.weights.split("_group")[1].split("_")[0]
-    dim_first = args.weights.split("_f")[1].split("_")[0]
-    dim_second = args.weights.split("_s")[1].split("_")[0]
-    dim_third = args.weights.split("_t")[1].split(".log")[0]
-
+    # get the dir/model.pt
+    base_path = "/".join(args.weights.split("/")[-2:])
+    
+    group_size = base_path.split("_group")[1].split("_")[0]
+    dim_first = base_path.split("_f")[1].split("_")[0]
+    dim_second = base_path.split("_s")[1].split("_")[0]
+    dim_third = base_path.split("_t")[1].split(".log")[0]
+    
     return int(group_size), int(dim_first), int(dim_second), int(dim_third)
 
 
