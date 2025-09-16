@@ -43,15 +43,7 @@ class DAD_baseline(BaseExtractor):
         return mkpts
 
     def detectAndCompute(self, image, return_dict=None):
-        keypoints = self.detect(image, return_dict=False)
-        B, _, _, _ = image.shape
-
-        descriptors = torch.zeros(B, keypoints.shape[1], 256, device=keypoints.device)
-        warnings.warn("DAD does not compute descriptors; returning zero descriptors.")
-
-        if return_dict:
-            return {"keypoints": keypoints, "descriptors": descriptors}
-        return keypoints, descriptors
+        raise NotImplementedError
 
     def compute(self, image, keypoints):
         raise NotImplementedError
