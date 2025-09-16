@@ -1,6 +1,6 @@
 [project]
 name = "easy-local-features"
-version = "0.8.12"
+version = "0.8.13"
 description = "Add your description here"
 readme = "README.md"
 authors = [
