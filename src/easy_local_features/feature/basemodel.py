@@ -78,7 +78,6 @@ class BaseExtractor(ABC):
         """
         raise NotImplementedError("Every BaseExtractor must implement the detectAndCompute method.")
 
-    @abstractmethod
     def detect(self, image: ImageLike) -> KeypointsTensor:
         """Detect keypoints on an image.
 
@@ -88,7 +87,11 @@ class BaseExtractor(ABC):
         Returns:
             Tensor: keypoints shaped [B, N, 2] or [N, 2].
         """
-        raise NotImplementedError("Every BaseExtractor must implement the detect method.")
+        result = self.detectAndCompute(image, return_dict=False)
+        if isinstance(result, dict):
+            return result['keypoints']
+        else:
+            return result[0]
 
     @abstractmethod
     def compute(self, image: ImageLike, keypoints: KeypointsTensor) -> Union[
@@ -223,4 +226,3 @@ class BaseExtractor(ABC):
         if self.METHOD_TYPE is not None:
             return self.METHOD_TYPE
         return MethodType.DETECT_DESCRIBE if self.has_detector else MethodType.DESCRIPTOR_ONLY
-    

@@ -49,6 +49,7 @@ class EnsembleDetector:
         assert len(detectors) > 0, "EnsembleDetector requires at least one detector"
         self.detectors: List[DetectorLike] = list(detectors)
         self.config = config or EnsembleDetectorConfig()
+        self.device = torch.device("cpu")
 
     def to(self, device: torch.device | str):
         """Move underlying detectors to a device when supported and return self."""
@@ -93,6 +94,7 @@ class EnsembleDetector:
                 assert kps.ndim == 2 and kps.shape[-1] == 2, (
                     f"Detector {type(det).__name__} returned keypoints with shape {tuple(kps.shape)}, expected [N,2] or [1,N,2]."
                 )
+                kps = kps.to(device=device, dtype=torch.float32)
                 per_img_kps.append(kps)
 
             merged = per_img_kps[0] if len(per_img_kps) == 1 else torch.cat(per_img_kps, dim=0)
