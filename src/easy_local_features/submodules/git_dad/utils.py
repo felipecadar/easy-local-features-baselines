@@ -2,7 +2,7 @@ import math
 import warnings
 from pathlib import Path
 from typing import Optional, Union
-from dad.types import Benchmark, Detector, Matcher
+from .types import Benchmark, Detector, Matcher
 import torch.nn as nn
 import cv2
 import numpy as np

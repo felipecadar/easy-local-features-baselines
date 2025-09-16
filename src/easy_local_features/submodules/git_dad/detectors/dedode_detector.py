@@ -6,9 +6,9 @@ import torch.nn.functional as F
 import torchvision.models as tvm
 import torchvision.transforms as transforms
 from PIL import Image
-from dad.utils import get_best_device, sample_keypoints, check_not_i16
+from ..utils import get_best_device, sample_keypoints, check_not_i16
 
-from dad.types import Detector
+from ..types import Detector
 
 
 class DeDoDeDetector(Detector):
