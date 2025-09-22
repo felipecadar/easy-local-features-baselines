@@ -91,6 +91,8 @@ class EnsembleDetector:
                     kps = torch.as_tensor(kps)
                 if kps.ndim == 3 and kps.shape[0] == 1:
                     kps = kps[0]
+                if kps.ndim == 1 and kps.shape[0] == 0:
+                    kps = torch.zeros((0, 2), dtype=torch.float32)
                 assert kps.ndim == 2 and kps.shape[-1] == 2, (
                     f"Detector {type(det).__name__} returned keypoints with shape {tuple(kps.shape)}, expected [N,2] or [1,N,2]."
                 )
