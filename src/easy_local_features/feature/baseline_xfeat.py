@@ -43,8 +43,6 @@ class XFeat_baseline(BaseExtractor):
         self.model.eval()
         self.model.dev = self.device
         self.model.to(device)
-        print(f"Loaded XFeat model to {self.device}")
-        print(f"Model device: {self.model.dev}")
         self.matcher = NearestNeighborMatcher()
 
     def detectAndCompute(self, img, return_dict=None):
