@@ -203,7 +203,10 @@ def get_config(jupyter=False):
 
     return args
 
+
 WEIGHTS = "https://github.com/felipecadar/easy-local-features-baselines/releases/download/redk/best_model.pt"
+
+
 class REKD_baseline(BaseExtractor):
     METHOD_TYPE = MethodType.DETECT_DESCRIBE
     default_conf = {
@@ -242,6 +245,7 @@ class REKD_baseline(BaseExtractor):
         args.resize = conf.resize
 
         self.model = load_detector(args, self.device)
+        self.model.eval()
         self.levels = self.pyramid_levels + self.upsampled_levels + 1
 
         self.matcher = NearestNeighborMatcher()
@@ -284,7 +288,9 @@ class REKD_baseline(BaseExtractor):
         score_maps, ori_maps = self._compute_score_maps(image)
         im_pts = self._estimate_keypoint_coordinates(score_maps, num_points=self.default_num_points)
         pixel_coords = im_pts[..., :2]
-        pixel_coords = torch.tensor(pixel_coords).to(self.device)
+        pixel_coords = torch.tensor(pixel_coords, dtype=torch.float32).to(self.device)
+        if pixel_coords.dim() == 2:
+            pixel_coords = pixel_coords.unsqueeze(0)  # batch dimension to match other extractors pattern
         return pixel_coords
 
     def to(self, device):
@@ -373,6 +379,7 @@ class REKD_baseline(BaseExtractor):
 
         return im_pts
 
+
 if __name__ == "__main__":
     from easy_local_features.utils import io, vis, ops
 
@@ -380,7 +387,7 @@ if __name__ == "__main__":
 
     img0 = io.fromPath("tests/assets/megadepth0.jpg")
     img1 = io.fromPath("tests/assets/megadepth1.jpg")
-    
+
     img0, _ = ops.resize_short_edge(img0, 480)
     img1, _ = ops.resize_short_edge(img1, 480)
 
