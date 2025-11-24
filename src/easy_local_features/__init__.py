@@ -16,6 +16,7 @@ available_extractors = [
     "dedode",
     "delf",
     "disk",
+    "mum",
     "r2d2",
     "rekd",
     "sosnet",
