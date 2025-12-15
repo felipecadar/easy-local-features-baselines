@@ -3,9 +3,7 @@ name = "easy-local-features"
 version = "0.8.16"
 description = "Add your description here"
 readme = "README.md"
-authors = [
-    { name = "Felipe Cadar", email = "cadar@dcc.ufmg.br" }
-]
+authors = [{ name = "Felipe Cadar", email = "cadar@dcc.ufmg.br" }]
 requires-python = ">=3.9"
 dependencies = [
     "e2cnn>=0.2.3",
@@ -25,6 +23,8 @@ dependencies = [
     "wget",
     "yacs",
     "scikit-image>=0.24.0",
+    "timm==0.6.7",
+    "loguru==0.6.0",
 ]
 
 [project.scripts]
