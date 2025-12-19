@@ -333,6 +333,10 @@ class SuperPointConfig(TypedDict):
 
 class SuperPoint_baseline(BaseExtractor):
     METHOD_TYPE = MethodType.DETECT_DESCRIBE
+    CONF_ALIASES = {
+        "keypoint_threshold": "detection_threshold",
+        "max_keypoints": "top_k",
+    }
     default_conf: SuperPointConfig = {
         "top_k": -1,
         "sparse_outputs": True,

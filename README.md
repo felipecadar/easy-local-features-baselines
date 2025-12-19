@@ -45,6 +45,21 @@ det = getDetector("rekd", {"num_keypoints": 1500}).to("cpu")
 kps = det.detect(img)  # [1, N, 2]
 ```
 
+### Discover available config keys (no model init)
+
+In code:
+
+```python
+from easy_local_features import describe
+print(describe("superpoint"))
+```
+
+On the CLI:
+
+```bash
+easy-local-features --describe superpoint
+```
+
 ### Detect+Describe (one-liner matching)
 
 ```python

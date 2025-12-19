@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import Dict, Optional, Tuple, Union, overload, Protocol, runtime_checkable, Any
+from typing import Dict, Optional, Tuple, Union, overload, Protocol, runtime_checkable, Any, get_type_hints
 
 import numpy as np
 import torch
@@ -55,6 +55,8 @@ class BaseExtractor(ABC):
     """
     # Optional override in subclasses; if None, inferred from `has_detector`.
     METHOD_TYPE: Optional[str] = None
+    # Optional mapping of deprecated/alias keys -> canonical key names (for docs/help only)
+    CONF_ALIASES: Dict[str, str] = {}
 
     @abstractmethod
     @overload
@@ -94,6 +96,58 @@ class BaseExtractor(ABC):
             return result['keypoints']
         else:
             return result[0]
+
+    @classmethod
+    def describe(cls) -> Dict[str, Any]:
+        """Describe this method's user-facing interface and configuration.
+
+        This is intentionally lightweight (no model init). It uses:
+        - `cls.default_conf` if present
+        - `TypedDict` annotations if `default_conf` is annotated with one
+        - class docstring (first paragraph)
+        """
+        # defaults
+        defaults: Dict[str, Any] = {}
+        if hasattr(cls, "default_conf"):
+            raw = getattr(cls, "default_conf")
+            # OmegaConf DictConfig -> plain dict
+            try:  # pragma: no cover
+                from omegaconf import OmegaConf  # type: ignore
+
+                if OmegaConf.is_config(raw):
+                    raw = OmegaConf.to_container(raw, resolve=True)
+            except Exception:
+                pass
+            if isinstance(raw, dict):
+                defaults = dict(raw)
+
+        # TypedDict schema
+        schema: Dict[str, Any] = {}
+        try:
+            hints = get_type_hints(cls)
+            conf_t = hints.get("default_conf", None)
+            ann = getattr(conf_t, "__annotations__", None)
+            if isinstance(ann, dict):
+                for k, t in ann.items():
+                    schema[k] = getattr(t, "__name__", repr(t))
+        except Exception:
+            schema = {}
+
+        doc = (cls.__doc__ or "").strip().split("\n\n")[0].strip()
+        return {
+            "name": cls.__name__,
+            "method_type": getattr(cls, "METHOD_TYPE", None),
+            # Cannot reliably infer without instantiating (and `has_detector` is an abstract property).
+            "has_detector": None,
+            "defaults": defaults,
+            "schema": schema,  # key -> type string (best-effort)
+            "aliases": dict(getattr(cls, "CONF_ALIASES", {}) or {}),
+            "doc": doc,
+        }
+
+    def help(self) -> Dict[str, Any]:
+        """Instance-level alias of `describe()`."""
+        return type(self).describe()
 
     def extract_features(
         self,
