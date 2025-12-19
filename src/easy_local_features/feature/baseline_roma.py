@@ -5,6 +5,7 @@ from omegaconf import OmegaConf
 from easy_local_features.submodules.git_roma import romatch
 
 from .basemodel import BaseExtractor, MethodType
+from ..utils import ops
 from typing import TypedDict
 
 
@@ -86,6 +87,14 @@ class RoMa_baseline(BaseExtractor):
 
     # @abstractmethod
     def match(self, image1, image2):
+        image1 = ops.prepareImage(image1, batch=True, gray=False)
+        image2 = ops.prepareImage(image2, batch=True, gray=False)
+        # Ensure 3 channels
+        if image1.shape[1] == 1:
+            image1 = image1.repeat(1, 3, 1, 1)
+        if image2.shape[1] == 1:
+            image2 = image2.repeat(1, 3, 1, 1)
+
         hs, ws = self.model.h_resized, self.model.w_resized
         imA_h, imA_w = image1.shape[2:]
         imB_h, imB_w = image2.shape[2:]
@@ -98,6 +107,10 @@ class RoMa_baseline(BaseExtractor):
 
         kptsA, kptsB = self.model.to_pixel_coordinates(matches, imA_h, imA_w, imB_h, imB_w)
         # Ensure keypoints are detached and on CPU
+        if isinstance(kptsA, torch.Tensor) and kptsA.ndim == 3 and kptsA.shape[0] == 1:
+            kptsA = kptsA[0]
+        if isinstance(kptsB, torch.Tensor) and kptsB.ndim == 3 and kptsB.shape[0] == 1:
+            kptsB = kptsB[0]
         return {
             "mkpts0": kptsA.detach().cpu() if isinstance(kptsA, torch.Tensor) else kptsA,
             "mkpts1": kptsB.detach().cpu() if isinstance(kptsB, torch.Tensor) else kptsB,

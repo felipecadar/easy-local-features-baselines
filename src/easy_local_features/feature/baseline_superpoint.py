@@ -349,6 +349,14 @@ class SuperPoint_baseline(BaseExtractor):
     )
 
     def __init__(self, conf: SuperPointConfig = {}):
+        # Backwards-compatible aliases (commonly used in other libs / older code)
+        if "keypoint_threshold" in conf and "detection_threshold" not in conf:
+            conf = dict(conf)
+            conf["detection_threshold"] = conf.pop("keypoint_threshold")
+        if "max_keypoints" in conf and "top_k" not in conf:
+            conf = dict(conf)
+            conf["top_k"] = conf.pop("max_keypoints")
+
         self.conf = conf = OmegaConf.merge(OmegaConf.create(self.default_conf), conf)
         self.device = torch.device("cpu")
         self.matcher = NearestNeighborMatcher()
@@ -384,6 +392,7 @@ class SuperPoint_baseline(BaseExtractor):
     def to(self, device):
         self.model = self.model.to(device)
         self.device = device
+        return self
 
     @property
     def has_detector(self):

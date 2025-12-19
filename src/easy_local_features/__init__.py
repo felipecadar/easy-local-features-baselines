@@ -11,7 +11,6 @@ available_extractors = [
     "alike",
     "aliked",
     "d2net",
-    "dad",
     # 'dalf',  # disabled in tests due to formatting issues; re-enable once fixed
     "deal",
     "dedode",
@@ -19,7 +18,6 @@ available_extractors = [
     "disk",
     "mum",
     "r2d2",
-    "rekd",
     "topicfm",
     "sosnet",
     "superpoint",
@@ -30,6 +28,11 @@ available_extractors = [
     "romav2",
     "orb",
     "desc_reasoning",
+]
+
+available_detectors = [
+    "dad",
+    "rekd",
 ]
 
 
@@ -53,3 +56,42 @@ def getExtractor(extractor_name: str, conf={}):
     )
     extractor = importByName(extractor_name)
     return extractor(conf)
+
+def getDetector(detector_name: str, conf={}):
+    assert detector_name in available_detectors, (
+        f"Invalid detector {detector_name}. Available detectors: {available_detectors}"
+    )
+    det = importByName(detector_name)
+    return det(conf)
+
+
+def main() -> None:
+    """Console entrypoint for `easy-local-features`.
+
+    Keeps the CLI intentionally minimal: list available extractors.
+    """
+    import argparse
+
+    parser = argparse.ArgumentParser(prog="easy-local-features")
+    parser.add_argument(
+        "--list",
+        action="store_true",
+        help="List available extractors and exit.",
+    )
+    parser.add_argument(
+        "--list-detectors",
+        action="store_true",
+        help="List available detectors and exit.",
+    )
+    args = parser.parse_args()
+
+    if args.list:
+        for name in available_extractors:
+            print(name)
+        return
+    if args.list_detectors:
+        for name in available_detectors:
+            print(name)
+        return
+
+    parser.print_help()

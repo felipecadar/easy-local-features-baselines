@@ -11,6 +11,7 @@ import romav2.device as romav2_device
 import romav2.romav2 as romav2_mod
 
 from .basemodel import BaseExtractor, MethodType
+from ..utils import ops
 
 
 DeviceName = Literal["auto", "cpu", "cuda", "mps"]
@@ -124,8 +125,10 @@ class RoMaV2_baseline(BaseExtractor):
         raise NotImplementedError("RoMaV2 is an end-to-end matcher; use match(image1, image2).")
 
     def _prepare_image_float32(self, image: torch.Tensor) -> torch.Tensor:
-        if image.ndim == 3:
-            image = image.unsqueeze(0)
+        image = ops.prepareImage(image, batch=True, gray=False)
+        # Ensure 3 channels for RoMaV2
+        if image.shape[1] == 1:
+            image = image.repeat(1, 3, 1, 1)
         # Ensure float32 in [0,1]
         if image.dtype == torch.uint8:
             image = image.float().div_(255.0)
@@ -198,8 +201,8 @@ class RoMaV2_baseline(BaseExtractor):
         kptsA, kptsB = self.model.to_pixel_coordinates(matches, imA_h, imA_w, imB_h, imB_w)
 
         out = {
-            "mkpts0": kptsA.detach().cpu(),
-            "mkpts1": kptsB.detach().cpu(),
+            "mkpts0": (kptsA[0] if kptsA.ndim == 3 and kptsA.shape[0] == 1 else kptsA).detach().cpu(),
+            "mkpts1": (kptsB[0] if kptsB.ndim == 3 and kptsB.shape[0] == 1 else kptsB).detach().cpu(),
             "overlaps": overlaps.detach().cpu(),
         }
         if prec_AB_s is not None:

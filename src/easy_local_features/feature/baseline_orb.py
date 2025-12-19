@@ -81,7 +81,30 @@ class ORB_baseline(BaseExtractor):
         return kps
 
     def compute(self, img, kps):
-        raise NotImplementedError("This method is not implemented in this class")
+        # OpenCV ORB supports computing descriptors for provided keypoints.
+        img_t = ops.prepareImage(img, gray=True, batch=False)
+        img_cv = ops.to_cv(img_t, to_gray=True)
+
+        if isinstance(kps, torch.Tensor):
+            kps_t = kps.detach().cpu()
+        else:
+            kps_t = torch.as_tensor(kps).cpu()
+
+        if kps_t.ndim == 3 and kps_t.shape[0] == 1:
+            kps_t = kps_t[0]
+        if kps_t.numel() == 0:
+            return torch.zeros((1, 0, 32), dtype=torch.float32)
+
+        # (x,y) -> cv2.KeyPoint
+        pts = kps_t.numpy().astype(np.float32)
+        cv_kps = [cv2.KeyPoint(x=float(x), y=float(y), size=31) for x, y in pts]
+        cv_kps, cv_desc = self.model.compute(img_cv, cv_kps)
+
+        desc_np = (
+            np.array(cv_desc, dtype=np.float32) if cv_desc is not None else np.zeros((0, 32), dtype=np.float32)
+        )
+        desc = torch.from_numpy(desc_np).float().unsqueeze(0)
+        return desc
 
     def to(self, device):
         return self

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import Dict, Optional, Tuple, Union, overload, Protocol, runtime_checkable
+from typing import Dict, Optional, Tuple, Union, overload, Protocol, runtime_checkable, Any
 
 import numpy as np
 import torch
@@ -12,11 +12,13 @@ class MethodType:
 
     - DETECT_DESCRIBE: traditional detector+descriptor operating on a single image
     - DESCRIPTOR_ONLY: descriptor that requires external keypoints
+    - DETECTOR_ONLY: detector-only method (keypoints only; no descriptors/matching)
     - END2END_MATCHER: end-to-end matcher operating directly on two images
     """
 
     DETECT_DESCRIBE = "detect_describe"
     DESCRIPTOR_ONLY = "descriptor_only"
+    DETECTOR_ONLY = "detector_only"
     END2END_MATCHER = "end2end_matcher"
 
 
@@ -93,6 +95,63 @@ class BaseExtractor(ABC):
         else:
             return result[0]
 
+    def extract_features(
+        self,
+        image: ImageLike,
+        *,
+        keypoints: Optional[KeypointsTensor] = None,
+        return_dict: bool = True,
+    ) -> Union[Dict[str, torch.Tensor], Tuple[KeypointsTensor, DescriptorsTensor]]:
+        """Unified extraction helper.
+
+        This is the simplest user-facing API for non end-to-end methods:
+        - If `keypoints` is None: runs detect+describe (`detectAndCompute`)
+        - If `keypoints` is provided: runs descriptor computation (`compute`)
+
+        Returns either a dict with keys {"keypoints","descriptors"} (default)
+        or a tuple (keypoints, descriptors) if return_dict=False.
+        """
+        if keypoints is None:
+            out = self.detectAndCompute(image, return_dict=return_dict)
+            if return_dict:
+                assert isinstance(out, dict)
+                return {
+                    "keypoints": self._as_batched_keypoints(out["keypoints"]),
+                    "descriptors": self._as_batched_descriptors(out["descriptors"]),
+                }
+            k, d = out  # type: ignore[misc]
+            return self._as_batched_keypoints(k), self._as_batched_descriptors(d)
+
+        k = self._as_batched_keypoints(keypoints)
+        out = self.compute(image, k)
+        if isinstance(out, tuple) and len(out) == 2:
+            k2, d = out
+            k = self._as_batched_keypoints(k2)
+            d = self._as_batched_descriptors(d)
+        else:
+            d = self._as_batched_descriptors(out)  # type: ignore[arg-type]
+        if return_dict:
+            return {"keypoints": k, "descriptors": d}
+        return k, d
+
+    @staticmethod
+    def _as_batched_keypoints(k: torch.Tensor) -> torch.Tensor:
+        """Ensure keypoints are shaped [B, N, 2]."""
+        if not isinstance(k, torch.Tensor):
+            k = torch.as_tensor(k)
+        if k.ndim == 2:
+            k = k.unsqueeze(0)
+        return k
+
+    @staticmethod
+    def _as_batched_descriptors(d: torch.Tensor) -> torch.Tensor:
+        """Ensure descriptors are shaped [B, N, ...]."""
+        if not isinstance(d, torch.Tensor):
+            d = torch.as_tensor(d)
+        if d.ndim == 2:
+            d = d.unsqueeze(0)
+        return d
+
     @abstractmethod
     def compute(self, image: ImageLike, keypoints: KeypointsTensor) -> Union[
         DescriptorsTensor, Tuple[KeypointsTensor, DescriptorsTensor]
@@ -140,18 +199,23 @@ class BaseExtractor(ABC):
         def detectAndCompute(image: ImageLike, return_dict: bool = False) -> Union[
             Tuple[KeypointsTensor, DescriptorsTensor], Dict[str, torch.Tensor]
         ]:
-            keypoints = detector.detect(image)
+            keypoints = self._as_batched_keypoints(detector.detect(image))
             # Support compute() returning either descriptors OR (keypoints, descriptors)
             out = self.compute(image, keypoints)
             if isinstance(out, tuple) and len(out) == 2:
                 keypoints, descriptors = out
             else:
                 descriptors = out
+            keypoints = self._as_batched_keypoints(keypoints)
+            descriptors = self._as_batched_descriptors(descriptors)
             if return_dict:
                 return {"keypoints": keypoints, "descriptors": descriptors}
             return keypoints, descriptors
 
-        self.detect = detector.detect
+        def detect(image: ImageLike) -> torch.Tensor:
+            return self._as_batched_keypoints(detector.detect(image))
+
+        self.detect = detect
         self.detectAndCompute = detectAndCompute
 
     # @abstractmethod
@@ -181,8 +245,15 @@ class BaseExtractor(ABC):
                     "No matcher set on extractor and failed to create default NearestNeighborMatcher."
                 ) from e
         # Run feature extraction without gradients
-        kp0, desc0 = self.detectAndCompute(image1)
-        kp1, desc1 = self.detectAndCompute(image2)
+        # Important: do NOT call `self.extract(...)` here because some baselines
+        # use `self.extract` as a callable attribute (e.g. DISK), which would
+        # shadow any helper method name and bypass their `detectAndCompute`.
+        kp0, desc0 = self.detectAndCompute(image1, return_dict=False)
+        kp1, desc1 = self.detectAndCompute(image2, return_dict=False)
+        kp0 = self._as_batched_keypoints(kp0)
+        kp1 = self._as_batched_keypoints(kp1)
+        desc0 = self._as_batched_descriptors(desc0)
+        desc1 = self._as_batched_descriptors(desc1)
         data = {
             "descriptors0": desc0,
             "descriptors1": desc1,

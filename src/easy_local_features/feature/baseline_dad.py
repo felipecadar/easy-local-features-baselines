@@ -17,7 +17,7 @@ class DadConfig(TypedDict):
 
 
 class DAD_baseline(BaseExtractor):
-    METHOD_TYPE = MethodType.DETECT_DESCRIBE
+    METHOD_TYPE = MethodType.DETECTOR_ONLY
     default_conf = DadConfig(
         num_keypoints=1024,
         resize=1024,
@@ -25,14 +25,17 @@ class DAD_baseline(BaseExtractor):
     )
 
     def __init__(self, conf={}):
+        self.conf = conf
         self.num_keypoints = conf.get("num_keypoints", self.default_conf["num_keypoints"])
-        self.detector = dad.load_DaD()
-        self.DEV = get_best_device()
-        self.matcher = NearestNeighborMatcher()
+        self.resize = conf.get("resize", self.default_conf["resize"])
+        self.nms_size = conf.get("nms_size", self.default_conf["nms_size"])
 
-    def detect(self, image, return_dict=None):
-        img = prepareImage(image, imagenet=True, batch=True)
-        img = image.to(self.DEV)
+        self.detector = dad.load_DaD(resize=self.resize, nms_size=self.nms_size)
+        self.DEV = get_best_device()
+        # Intentionally no matcher: DaD is detector-only.
+
+    def detect(self, image, return_dict: bool = False):
+        img = prepareImage(image, imagenet=True, batch=True).to(self.DEV)
         
 
         mkpts = self.detector.detect({"image": img}, num_keypoints=self.num_keypoints)["keypoints"]
@@ -42,11 +45,14 @@ class DAD_baseline(BaseExtractor):
             return {"mkpts": mkpts}
         return mkpts
 
-    def detectAndCompute(self, image, return_dict=None):
-        raise NotImplementedError
+    def detectAndCompute(self, image, return_dict: bool = False):
+        raise NotImplementedError("DAD_baseline is detector-only; use detect(image).")
 
     def compute(self, image, keypoints):
-        raise NotImplementedError
+        raise NotImplementedError("DAD_baseline is detector-only; it does not compute descriptors.")
+
+    def match(self, image1, image2):
+        raise NotImplementedError("DAD_baseline is detector-only; it does not support matching.")
 
     @property
     def has_detector(self):
@@ -55,6 +61,7 @@ class DAD_baseline(BaseExtractor):
     def to(self, device):
         self.detector.to(device)
         self.DEV = device
+        return self
 
 
 if __name__ == "__main__":

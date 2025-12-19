@@ -248,7 +248,7 @@ class TopicFM_baseline(BaseExtractor):
                     scores, k=min(num_keypoints, len(scores)))[1]
                 keypoints = keypoints[top_indices]
 
-        return keypoints.cpu()
+        return keypoints.cpu().unsqueeze(0)  # [1, N, 2]
 
     @torch.inference_mode()
     def match(self, image0, image1, return_dict: bool = True) -> Dict[str, torch.Tensor]:
@@ -447,8 +447,8 @@ class TopicFM_baseline(BaseExtractor):
             descriptors = feats_c.squeeze(0).view(
                 feats_c.size(1), -1).t()  # (H*W, C)
 
-        keypoints = keypoints.cpu()
-        descriptors = descriptors.cpu()
+        keypoints = keypoints.cpu().unsqueeze(0)  # [1, N, 2]
+        descriptors = descriptors.cpu().unsqueeze(0)  # [1, N, C]
 
         if return_dict:
             return {'keypoints': keypoints, 'descriptors': descriptors}
@@ -467,6 +467,9 @@ class TopicFM_baseline(BaseExtractor):
         Returns:
             torch.Tensor: Descriptors of shape (N, C)
         """
+        # Accept [B,N,2] or [N,2]
+        if isinstance(keypoints, torch.Tensor) and keypoints.ndim == 3 and keypoints.shape[0] == 1:
+            keypoints = keypoints[0]
         # Prepare image
         img_tensor = self._prepare_image(image)
         h, w = img_tensor.shape[2:]
@@ -493,7 +496,7 @@ class TopicFM_baseline(BaseExtractor):
             # Reshape to (N, C)
             descriptors = descriptors.squeeze(3).squeeze(0).t()  # (N, C)
 
-        return descriptors.cpu()
+        return descriptors.cpu().unsqueeze(0)  # [1, N, C]
 
     @property
     def has_detector(self):

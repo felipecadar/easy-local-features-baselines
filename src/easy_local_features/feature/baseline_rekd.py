@@ -208,7 +208,7 @@ WEIGHTS = "https://github.com/felipecadar/easy-local-features-baselines/releases
 
 
 class REKD_baseline(BaseExtractor):
-    METHOD_TYPE = MethodType.DETECT_DESCRIBE
+    METHOD_TYPE = MethodType.DETECTOR_ONLY
     default_conf = {
         "num_keypoints": 1500,
         "pyramid_levels": 5,
@@ -248,7 +248,7 @@ class REKD_baseline(BaseExtractor):
         self.model.eval()
         self.levels = self.pyramid_levels + self.upsampled_levels + 1
 
-        self.matcher = NearestNeighborMatcher()
+        # Intentionally no matcher: REKD is detector-only.
 
     def to_normalized_coords(self, keypoints, H, W):
         """Convert pixel coordinates to normalized coordinates [-1, 1]"""
@@ -265,7 +265,7 @@ class REKD_baseline(BaseExtractor):
         return kpts
 
     def detectAndCompute(self, image, return_dict=False):
-        return NotImplementedError
+        raise NotImplementedError("REKD_baseline is detector-only; use detect(image).")
 
     def detect(self, image):
         """Detect keypoints only"""
@@ -275,7 +275,10 @@ class REKD_baseline(BaseExtractor):
         return kps
 
     def compute(self, image, keypoints):
-        return NotImplementedError
+        raise NotImplementedError("REKD_baseline is detector-only; it does not compute descriptors.")
+
+    def match(self, image1, image2):
+        raise NotImplementedError("REKD_baseline is detector-only; it does not support matching.")
 
     def _detect_keypoints(self, image):
         """Internal method to detect keypoints"""
