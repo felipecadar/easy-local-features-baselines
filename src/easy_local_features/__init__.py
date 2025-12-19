@@ -25,6 +25,7 @@ available_extractors = [
     "xfeat",
     # 'relf',  # optional dependency mmcv not installed in test env
     "roma",
+    "romav2",
     "orb",
     "desc_reasoning",
 ]

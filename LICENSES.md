@@ -26,6 +26,7 @@ Quick Summary Table
 | LoFTR                | licenses/LICENSE_LOFTR.txt         | Apache 2.0             | Yes (Permissive) | Same as above. |
 | R2D2                 | licenses/LICENSE_R2D2.txt          | CC BY‑NC‑SA 3.0        | No (Non‑Commercial) | Share‑Alike + Non‑Commercial. |
 | RoMa                 | licenses/LICENSE_ROMA.txt          | MIT                    | Yes (Permissive) | Include license. |
+| RoMaV2               | licenses/LICENSE_ROMAV2.txt        | MIT                    | Yes (Permissive) | Include license. Uses DINOv3 (separate license). |
 | SuperGlue            | licenses/LICENSE_SUPERGLUE.txt     | Non‑Commercial Research | No (Non‑Commercial) | Magic Leap research license; distribution restrictions. |
 | SuperPoint (original)| (Upstream Magic Leap)     | Non‑Commercial Research | No (Non‑Commercial) | Check original repo & license. |
 | SuperPoint (open impl)| baseline_superpoint_open | Likely Apache/MIT (verify) | Usually Yes | Inspect upstream project actually used. |
@@ -46,6 +47,7 @@ The verbatim license texts for the baselines explicitly vendored here are kept a
 - licenses/LICENSE_LOFTR.txt
 - licenses/LICENSE_R2D2.txt
 - licenses/LICENSE_ROMA.txt
+- licenses/LICENSE_ROMAV2.txt
 - licenses/LICENSE_SUPERGLUE.txt
 - licenses/LICENSE_DINOv3.txt
 
