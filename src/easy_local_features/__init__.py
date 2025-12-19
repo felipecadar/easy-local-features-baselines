@@ -3,7 +3,8 @@ import os
 from .feature.basemodel import BaseExtractor
 
 os.environ["TFHUB_CACHE_DIR"] = os.path.expanduser(
-    os.path.join("~", ".cache", "torch", "hub", "checkpoints", "easy_local_features", "tfhub")
+    os.path.join("~", ".cache", "torch", "hub", "checkpoints",
+                 "easy_local_features", "tfhub")
 )
 
 available_extractors = [
@@ -19,6 +20,7 @@ available_extractors = [
     "mum",
     "r2d2",
     "rekd",
+    "topicfm",
     "sosnet",
     "superpoint",
     "tfeat",
@@ -41,7 +43,8 @@ def importByName(name):
         if f"{name}_baseline" == sub.__name__.lower():
             return sub
 
-    raise ValueError(f"Could not find a subclass of BaseExtractor in <{package_name}> that contains <{name}>")
+    raise ValueError(
+        f"Could not find a subclass of BaseExtractor in <{package_name}> that contains <{name}>")
 
 
 def getExtractor(extractor_name: str, conf={}):
