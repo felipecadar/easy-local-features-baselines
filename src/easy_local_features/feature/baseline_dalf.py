@@ -291,7 +291,94 @@ class DALF_baseline(BaseExtractor):
         return self.detectAndCompute(img)[0]
 
     def compute(self, image, keypoints):
-        raise NotImplementedError
+        if isinstance(keypoints, np.ndarray):
+            keypoints = torch.tensor(keypoints, dtype=torch.float32, device=self.DEV)
+        
+        # Ensure keypoints have batch dim
+        is_batched = True
+        if keypoints.dim() == 2:
+            keypoints = keypoints.unsqueeze(0)
+            is_batched = False
+            
+        B_k = keypoints.shape[0]
+
+        # Match detectAndCompute quantization
+        img_cv = ops.to_cv(ops.prepareImage(image))
+        img = (
+            torch.tensor(img_cv, dtype=torch.float32, device=self.DEV)
+            .permute(2, 0, 1)
+            .unsqueeze(0)
+            / 255.0
+        )
+        
+        # Replicate DEAL.forward logic for grayscale conversion
+        if self.net.nchannels == 1 and img.shape[1] != 1:
+            img = torch.mean(img, axis=1, keepdim=True)
+            
+        B, C, H, W = img.shape
+        # If image batch is 1 and keypoints batch > 1, repeat image? 
+        # Usually compute is called with 1 image and its keypoints.
+        # We assume B=1 for image for now or B matches.
+        
+        with torch.no_grad():
+            out = self.net.net(img)
+            
+            # Prepare keypoints for DALF internal modules
+            # tps_net expects list of dicts with 'xy'
+            kpts_list = [{'xy': keypoints[b]} for b in range(B)]
+            
+            optimize_tps = (
+                self.net.mode == "ts2"
+                or self.net.mode == "end2end-tps"
+                or self.net.mode == "end2end-full"
+                or self.net.mode == "ts-fl"
+            )
+            
+            if optimize_tps:
+                patches = self.net.tps_net(out["feat"], img, kpts_list, H, W)
+            else:
+                patches = [None] * B
+
+            descs_list = []
+            for b in range(B):
+                if (
+                    self.net.mode == "end2end-full"
+                    or self.net.mode == "ts2"
+                    or self.net.mode == "ts-fl"
+                ):
+                    # distinct & invariant features
+                    if self.net.mode == "ts-fl":  # fuse descriptors with a MLP
+                        final_desc = torch.cat(
+                            (
+                                self.net.hardnet(patches[b]),
+                                self.net.interpolator(out["feat"][b], kpts_list[b]["xy"], H, W),
+                            ),
+                            dim=1,
+                        )
+                        final_desc = self.net.fusion_layer(final_desc) * final_desc
+                    else:
+                        final_desc = torch.cat(
+                            (
+                                self.net.hardnet(patches[b]),
+                                self.net.interpolator(out["feat"][b], kpts_list[b]["xy"], H, W),
+                            ),
+                            dim=1,
+                        )
+                elif self.net.mode == "end2end-backbone" or self.net.mode == "ts1":
+                    # full distinct features from backbone only
+                    final_desc = self.net.interpolator(out["feat"][b], kpts_list[b]["xy"], H, W)
+                else:
+                    # full invariant
+                    final_desc = self.net.hardnet(patches[b])
+
+                descs_list.append(F.normalize(final_desc))
+            
+            all_descs = torch.stack(descs_list) # [B, N, D]
+            
+            if not is_batched:
+                return all_descs.squeeze(0)
+                
+            return all_descs
 
     def to(self, device):
         self.net.to(device)

@@ -1,5 +1,6 @@
 from functools import partial
 
+import numpy as np
 import torch
 import torch.nn.functional as F
 from omegaconf import OmegaConf
@@ -175,7 +176,56 @@ class DISK_baseline(BaseExtractor):
         return self.detectAndCompute(img)[0]
 
     def compute(self, image, keypoints):
-        raise NotImplementedError
+        image = self._toImage(image)
+        with torch.no_grad():
+            try:
+                unet_output = self.model.unet(image.bitmap.unsqueeze(0))
+                descriptors, _ = self.model._split(unet_output)
+            except RuntimeError as e:
+                if "U-Net failed" in str(e):
+                    msg = (
+                        "Please use input size which is multiple of 16."
+                        "This is because we internally use a U-Net with 4"
+                        "downsampling steps, each by a factor of 2"
+                        "therefore 2^4=16."
+                    )
+                    raise RuntimeError(msg) from e
+                else:
+                    raise
+
+        if isinstance(keypoints, np.ndarray):
+            keypoints = torch.tensor(keypoints, device=self.DEV, dtype=torch.float32)
+
+        # keypoints are in original image coordinates
+        # we need to convert them to bitmap coordinates
+        f, _size = image._compute_interpolation_size(image.bitmap.shape[1:])
+        kpts_bitmap = keypoints * f
+
+        # grid_sample expects coordinates in range [-1, 1]
+        # descriptors shape: [B, C, H, W]
+        # kpts_bitmap shape: [B, N, 2] or [N, 2]
+        
+        if kpts_bitmap.dim() == 2:
+            kpts_bitmap = kpts_bitmap.unsqueeze(0)
+        
+        B, C, H, W = descriptors.shape
+        
+        # Normalize to [-1, 1]
+        # (x / W) * 2 - 1
+        grid_x = (kpts_bitmap[..., 0] / (W - 1)) * 2 - 1
+        grid_y = (kpts_bitmap[..., 1] / (H - 1)) * 2 - 1
+        grid = torch.stack((grid_x, grid_y), dim=-1).unsqueeze(2) # [B, N, 1, 2]
+        
+        sampled_desc = F.grid_sample(descriptors, grid, mode='bilinear', align_corners=True) # [B, C, N, 1]
+        sampled_desc = sampled_desc.squeeze(3).permute(0, 2, 1) # [B, N, C]
+        
+        # Normalize descriptors
+        sampled_desc = F.normalize(sampled_desc, dim=-1)
+        
+        if sampled_desc.shape[0] == 1 and isinstance(keypoints, torch.Tensor) and keypoints.dim() == 2:
+            return sampled_desc.squeeze(0)
+            
+        return sampled_desc
 
     def to(self, device):
         self.model.to(device)

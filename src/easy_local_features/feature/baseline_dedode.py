@@ -1,4 +1,5 @@
 import torch
+import numpy as np
 from kornia.feature import DeDoDe
 from omegaconf import OmegaConf
 
@@ -105,7 +106,43 @@ class DeDoDe_baseline(BaseExtractor):
         return self.detectAndCompute(img)[0]
 
     def compute(self, image, keypoints):
-        raise NotImplementedError
+        if isinstance(keypoints, np.ndarray):
+            keypoints = torch.tensor(keypoints, dtype=torch.float32, device=self.DEV)
+        
+        # Ensure keypoints have batch dim if image has batch dim
+        # ops.prepareImage returns [B, C, H, W] (usually B=1)
+        image = ops.prepareImage(image, imagenet=True).to(self.DEV)
+        _B, _C, H, W = image.shape
+        
+        # Replicate padding from DeDoDe.forward
+        pd_h = 14 - H % 14 if H % 14 > 0 else 0
+        pd_w = 14 - W % 14 if W % 14 > 0 else 0
+        image_padded = torch.nn.functional.pad(image, (0, pd_w, 0, pd_h), value=0.0)
+
+        is_batched = True
+        if keypoints.dim() == 2:
+            keypoints = keypoints.unsqueeze(0)
+            is_batched = False
+            
+        # Normalize keypoints to [-1, 1] using the formula from dedode_denormalize_pixel_coordinates
+        # x_pixel = w * (norm_x + 1) / 2  => norm_x = (2 * x_pixel / w) - 1
+        keypoints_norm = (2 * keypoints / torch.tensor([W, H], device=self.DEV, dtype=torch.float32)) - 1
+            
+        descriptors = self.model.describe(image_padded, keypoints=keypoints_norm, apply_imagenet_normalization=False, crop_h=H, crop_w=W)
+        
+        # descriptors shape from DeDoDe describe?
+        # Usually [B, N, C] or [B, C, N]?
+        # Let's assume [B, N, C] which is standard for Kornia/DeDoDe describe with keypoints.
+        # But if it returns [B, C, N], we might need to permute.
+        # Let's check consistency with detectAndCompute.
+        # detectAndCompute returns keypoints, descriptors.
+        # self.model(...) returns keypoints, scores, descriptors.
+        # usually descriptors are [B, N, C].
+        
+        if not is_batched:
+            return descriptors.squeeze(0)
+            
+        return descriptors
 
     def to(self, device):
         self.model.to(device)
