@@ -90,38 +90,57 @@ class LightGlue_baseline(BaseExtractor):
         descriptors0 = data["descriptors0"]
         descriptors1 = data["descriptors1"]
 
-        input = {
-            "image0": {
-                "keypoints": keypoints0,
-                "descriptors": descriptors0,
-                "image": data["image0"] if isinstance(data["image0"], torch.Tensor) else ops.prepareImage(data["image0"]),
-            },
-            "image1": {
-                "keypoints": keypoints1,
-                "descriptors": descriptors1,
-                "image": data["image1"] if isinstance(data["image1"], torch.Tensor) else ops.prepareImage(data["image1"]),
-            },
-        }
-        
-        with torch.no_grad():
-            out = self.matcher(input)
+        img0 = data['image0']
+        if not isinstance(img0, torch.Tensor):
+            img0 = ops.prepareImage(img0)
+        img1 = data['image1']
+        if not isinstance(img1, torch.Tensor):
+            img1 = ops.prepareImage(img1)
 
-        matches = out["matches"][0].to(self.device)
-        mscores = out["matching_scores0"][0].to(self.device)
+        b_size = keypoints0.shape[0]
+        out_list = []
 
-        mkpts0 = keypoints0[0, matches[:, 0]]
-        mkpts1 = keypoints1[0, matches[:, 1]]
-        # Ensure keypoints and matches are detached and on CPU for output
-        return {
-            "keypoints0": keypoints0.detach().cpu(),
-            "keypoints1": keypoints1.detach().cpu(),
-            "descriptors0": descriptors0.detach().cpu() if isinstance(descriptors0, torch.Tensor) else descriptors0,
-            "descriptors1": descriptors1.detach().cpu() if isinstance(descriptors1, torch.Tensor) else descriptors1,
-            "matches": matches.detach().cpu(),
-            "scores": mscores.detach().cpu(),
-            "mkpts0": mkpts0.detach().cpu(),
-            "mkpts1": mkpts1.detach().cpu(),
-        }
+        for b in range(b_size):
+            input_b = {
+                "image0": {
+                    "keypoints": keypoints0[b:b+1],
+                    "descriptors": descriptors0[b:b+1],
+                    "image": img0[b:b+1],
+                },
+                "image1": {
+                    "keypoints": keypoints1[b:b+1],
+                    "descriptors": descriptors1[b:b+1],
+                    "image": img1[b:b+1],
+                },
+            }
+            
+            with torch.no_grad():
+                out = self.matcher(input_b)
+
+            matches_b = out["matches"][0].to(self.device).detach().cpu()
+            mscores_b = out["matching_scores0"][0].to(self.device).detach().cpu()
+
+            mkpts0_b = keypoints0[b, matches_b[:, 0]].detach().cpu()
+            mkpts1_b = keypoints1[b, matches_b[:, 1]].detach().cpu()
+
+            desc0_b = descriptors0[b]
+            desc1_b = descriptors1[b]
+            
+            out_dict = {
+                "keypoints0": keypoints0[b].detach().cpu(),
+                "keypoints1": keypoints1[b].detach().cpu(),
+                "descriptors0": desc0_b.detach().cpu() if isinstance(desc0_b, torch.Tensor) else desc0_b,
+                "descriptors1": desc1_b.detach().cpu() if isinstance(desc1_b, torch.Tensor) else desc1_b,
+                "matches": matches_b,
+                "scores": mscores_b,
+                "mkpts0": mkpts0_b,
+                "mkpts1": mkpts1_b,
+            }
+            out_list.append(out_dict)
+
+        if b_size == 1:
+            return out_list[0]
+        return out_list
     
     def to(self, device):
         self.matcher = self.matcher.to(device)

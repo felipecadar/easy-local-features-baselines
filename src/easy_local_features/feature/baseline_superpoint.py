@@ -308,6 +308,7 @@ class Net(nn.Module):
                     desc = [
                         sample_descriptors_fix_sampling(k[None], d[None], 8)[0] for k, d in zip(keypoints, dense_desc)
                     ]
+                desc = torch.stack(desc, 0)
 
             pred = {
                 "keypoints": keypoints + 0.5,
@@ -330,6 +331,7 @@ class SuperPointConfig(TypedDict):
     detection_threshold: float
     remove_borders: int
     legacy_sampling: bool
+    force_num_keypoints: bool
 
 class SuperPoint_baseline(BaseExtractor):
     METHOD_TYPE = MethodType.DETECT_DESCRIBE
@@ -346,6 +348,7 @@ class SuperPoint_baseline(BaseExtractor):
         "detection_threshold": 0.005,
         "remove_borders": 4,
         "legacy_sampling": True,  # True to use the old broken sampling
+        "force_num_keypoints": False,
     }
 
     checkpoint_url = (

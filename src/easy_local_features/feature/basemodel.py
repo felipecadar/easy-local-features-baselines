@@ -315,29 +315,33 @@ class BaseExtractor(ABC):
 
         response = self.matcher(data)
 
-        m0 = response["matches0"][0]
-        valid = m0 > -1
-        # Ensure indices/masks live on the same device as keypoints before indexing
-        kp_device = kp0.device
-        if m0.device != kp_device:
-            m0 = m0.to(kp_device)
-            valid = valid.to(kp_device)
+        b_size = kp0.shape[0]
+        out_list = []
+        for b in range(b_size):
+            m0 = response["matches0"][b]
+            valid = m0 > -1
+            # Ensure indices/masks live on the same device as keypoints before indexing
+            kp_device = kp0.device
+            if m0.device != kp_device:
+                m0 = m0.to(kp_device)
+                valid = valid.to(kp_device)
 
-        mkpts0 = kp0[0, valid]
-        mkpts1 = kp1[0, m0[valid]]
-        # Ensure keypoints are detached and on CPU
-        mkpts0 = mkpts0.detach().cpu()
-        mkpts1 = mkpts1.detach().cpu()
+            mkpts0 = kp0[b, valid].detach().cpu()
+            mkpts1 = kp1[b, m0[valid]].detach().cpu()
 
-        out = {
-            "mkpts0": mkpts0,
-            "mkpts1": mkpts1,
-        }
-        # pass-through common optional outputs if present
-        for k in ("matches0", "matches1", "matching_scores0", "matching_scores1", "similarity"):
-            if k in response:
-                out[k] = response[k]
-        return out
+            out_dict = {
+                "mkpts0": mkpts0,
+                "mkpts1": mkpts1,
+            }
+            # pass-through common optional outputs if present
+            for k in ("matches0", "matches1", "matching_scores0", "matching_scores1", "similarity"):
+                if k in response:
+                    out_dict[k] = response[k][b].detach().cpu() if isinstance(response[k], torch.Tensor) else response[k][b]
+            out_list.append(out_dict)
+
+        if b_size == 1:
+            return out_list[0]
+        return out_list
 
     @property
     def method_type(self) -> str:

@@ -18,10 +18,13 @@ available_extractors = [
     "dedode",
     "delf",
     "disk",
+    "lightglue",
+    "loftr",
     "mum",
     "r2d2",
     "topicfm",
     "sosnet",
+    "superglue",
     "superpoint",
     "tfeat",
     "xfeat",
@@ -39,8 +42,16 @@ available_detectors = [
 
 
 def importByName(name):
-    package_name = f"easy_local_features.feature.baseline_{name}"
-    importlib.import_module(package_name)
+    package_name_feature = f"easy_local_features.feature.baseline_{name}"
+    package_name_matching = f"easy_local_features.matching.baseline_{name}"
+    
+    try:
+        importlib.import_module(package_name_feature)
+    except ModuleNotFoundError:
+        try:
+            importlib.import_module(package_name_matching)
+        except ModuleNotFoundError:
+            raise ValueError(f"Could not find module {package_name_feature} or {package_name_matching}")
 
     subclasses = BaseExtractor.__subclasses__()
     # find the correct subclass
@@ -49,7 +60,7 @@ def importByName(name):
             return sub
 
     raise ValueError(
-        f"Could not find a subclass of BaseExtractor in <{package_name}> that contains <{name}>")
+        f"Could not find a subclass of BaseExtractor that contains <{name}>")
 
 
 def getExtractor(extractor_name: str, conf={}):
