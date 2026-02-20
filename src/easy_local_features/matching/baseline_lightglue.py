@@ -39,7 +39,7 @@ class LightGlue_baseline(BaseExtractor):
                 tmp_conf["descriptor_weights"] = "B-upright"
                 self._extractor = getExtractor("dedode", tmp_conf)
             else:
-                self._extractor = getExtractor(self.defalut_conf["features"], self.conf)
+                self._extractor = getExtractor(self.conf["features"], self.conf)
             self._extractor.to(self.device)
         return self._extractor        
 

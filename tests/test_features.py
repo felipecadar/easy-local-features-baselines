@@ -33,8 +33,14 @@ def all_subclasses():
     return get_all_subclasses(BaseExtractor)
 
 
-@pytest.mark.parametrize("extractor_name", available_extractors)
-def test_feature_extractors(extractor_name):
+test_variations = [
+    "lightglue:superpoint",
+    "lightglue:disk",
+    "lightglue:aliked",
+    "desc_reasoning:xfeat-3_layers",
+]
+
+def _run_extractor_test(extractor_name):
     # skip DEAL
     if "deal" in extractor_name:
         print(f"Skipping {extractor_name}")
@@ -64,20 +70,36 @@ def test_feature_extractors(extractor_name):
 
     matches = extractor.match(image0, image1)
 
+    vis_name = extractor_name.replace(":", "_")
     vis.plot_pair(image0, image1, title=extractor_name, figsize=(8, 4))
     vis.plot_keypoints(matches["mkpts0"], matches["mkpts1"], kps_size=2)
     vis.add_text(f"Matches: {len(matches['mkpts0'])}")
-    vis.save(f"tests/results/{extractor_name}.png")
-
+    vis.save(f"tests/results/{vis_name}.png")
 
 @pytest.mark.parametrize("extractor_name", available_extractors)
-def test_cpu(extractor_name):
+def test_feature_extractors(extractor_name):
+    _run_extractor_test(extractor_name)
+
+@pytest.mark.parametrize("extractor_name", test_variations)
+def test_feature_variations(extractor_name):
+    _run_extractor_test(extractor_name)
+
+
+def _run_cpu_test(extractor_name):
     if "deal" in extractor_name:
         print(f"Skipping {extractor_name}")
         return
 
     extractor = getExtractor(extractor_name)
     extractor.to("cpu")
+
+@pytest.mark.parametrize("extractor_name", available_extractors)
+def test_cpu(extractor_name):
+    _run_cpu_test(extractor_name)
+
+@pytest.mark.parametrize("extractor_name", test_variations)
+def test_cpu_variations(extractor_name):
+    _run_cpu_test(extractor_name)
 
 
 if __name__ == "__main__":

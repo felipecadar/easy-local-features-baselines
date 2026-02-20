@@ -63,10 +63,25 @@ def importByName(name):
         f"Could not find a subclass of BaseExtractor that contains <{name}>")
 
 
-def getExtractor(extractor_name: str, conf={}):
+def getExtractor(extractor_name: str, conf=None):
+    if conf is None:
+        conf = {}
+    
+    variation = None
+    if ":" in extractor_name:
+        extractor_name, variation = extractor_name.split(":", 1)
+
     assert extractor_name in available_extractors, (
         f"Invalid extractor {extractor_name}. Available extractors: {available_extractors}"
     )
+    
+    if variation is not None:
+        if extractor_name == "lightglue":
+            conf["features"] = variation
+        elif extractor_name == "desc_reasoning":
+            conf["pretrained"] = variation
+        # We can add more mappings here if other models use the variation syntax
+            
     extractor = importByName(extractor_name)
     return extractor(conf)
 
@@ -80,8 +95,9 @@ def getDetector(detector_name: str, conf={}):
 
 def describe(name: str) -> Dict[str, Any]:
     """Describe an extractor/detector without instantiating it."""
-    if name in available_extractors or name in available_detectors:
-        cls = importByName(name)
+    base_name = name.split(":")[0] if ":" in name else name
+    if base_name in available_extractors or base_name in available_detectors:
+        cls = importByName(base_name)
         return cls.describe()
     raise ValueError(
         f"Unknown method '{name}'. Available extractors: {available_extractors}. Available detectors: {available_detectors}."
