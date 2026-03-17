@@ -71,6 +71,22 @@ class DINOv3_baseline(BaseExtractor):
         "normalize": "auto",
     }
 
+    # Map model variant to embedding dimension
+    _dim_map = {
+        "dinov3_vits16": 384,
+        "dinov3_vits16plus": 512,
+        "dinov3_vitb16": 768,
+        "dinov3_vitl16": 1024,
+        "dinov3_vith16plus": 1536,
+        "dinov3_vit7b16": 2560,
+        "dinov3_convnext_tiny": 768,
+        "dinov3_convnext_small": 768,
+        "dinov3_convnext_base": 1024,
+        "dinov3_convnext_large": 1536,
+        "dinov3_sat_vitl16": 1024,
+        "dinov3_sat_vit7b16": 2560,
+    }
+
     def __init__(self, conf: DINOv3Config = {}):
         self.conf = conf = OmegaConf.merge(OmegaConf.create(self.default_conf), conf)
         self.device = torch.device("cpu")
@@ -136,6 +152,10 @@ class DINOv3_baseline(BaseExtractor):
                         )
 
         self.model.eval()
+
+    def infer_dim(self) -> int:
+        """Return the descriptor dimensionality for the current model variant."""
+        return self._dim_map.get(self.conf.weights, self.model.embed_dim)
 
     def sample_features(self, keypoints, features, s=None, mode="bilinear"):
         if s is None:
