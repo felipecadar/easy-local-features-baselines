@@ -10,24 +10,26 @@ The typical pattern is: **create a figure** &rarr; **add overlays** &rarr; **sav
 from easy_local_features import getExtractor
 from easy_local_features.utils import io, ops, vis
 
-img0 = ops.resize_short_edge(io.fromPath("tests/assets/megadepth0.jpg"), 320)[0]
-img1 = ops.resize_short_edge(io.fromPath("tests/assets/megadepth1.jpg"), 320)[0]
+img0 = ops.resize_short_edge(io.fromPath("tests/assets/megadepth0.jpg"), 480)[0]
+img1 = ops.resize_short_edge(io.fromPath("tests/assets/megadepth1.jpg"), 480)[0]
 
-extractor = getExtractor("aliked", {"top_k": 2048}).to("cpu")
+extractor = getExtractor("xfeat", {"top_k": 2048}).to("cuda")
 matches = extractor.match(img0, img1)
 
 # Step 1: Create a figure with two images
-vis.plot_pair(img0, img1, title="ALIKED", figsize=(8, 4))
+vis.plot_pair(img0, img1, title="XFeat", figsize=(10, 5))
 
 # Step 2: Add overlays
-vis.plot_keypoints(matches["mkpts0"], matches["mkpts1"], kps_size=2)
-vis.plot_matches(matches["mkpts0"], matches["mkpts1"])
+vis.plot_keypoints(matches["mkpts0"], matches["mkpts1"], kps_size=2, color="b")
+vis.plot_matches(matches["mkpts0"], matches["mkpts1"], linewidth=0.3, alpha=0.5)
 vis.add_text(f"Matches: {len(matches['mkpts0'])}")
 
 # Step 3: Save or show
-vis.save("results/aliked.png")
+vis.save("results/xfeat.png")
 # or: vis.show()
 ```
+
+![Full workflow: keypoints + matches + text overlay](../assets/images/vis_full_workflow.png)
 
 ## Creating figures
 
@@ -38,10 +40,10 @@ vis.save("results/aliked.png")
 vis.plot_pair(img0, img1)
 
 # With title and custom size
-vis.plot_pair(img0, img1, title="SuperPoint", figsize=(12, 6))
+vis.plot_pair(img0, img1, title="XFeat", figsize=(12, 6))
 
 # Vertical layout
-vis.plot_pair(img0, img1, vertical=True, figsize=(10, 20))
+vis.plot_pair(img0, img1, vertical=True, figsize=(6, 10))
 
 # Color images (default is grayscale)
 vis.plot_pair(img0, img1, gray=False)
@@ -49,6 +51,14 @@ vis.plot_pair(img0, img1, gray=False)
 # Custom title font size
 vis.plot_pair(img0, img1, title="Big Title", title_fontsize=24)
 ```
+
+| Default (grayscale) | `gray=False` |
+|:---:|:---:|
+| ![plot_pair grayscale](../assets/images/vis_plot_pair.png) | ![plot_pair color](../assets/images/vis_color_mode.png) |
+
+Vertical layout with `vertical=True`:
+
+![Vertical layout](../assets/images/vis_vertical.png){ width="400" }
 
 **Parameters:**
 
@@ -91,20 +101,19 @@ Call after `plot_pair` to overlay keypoints on the existing figure.
 vis.plot_pair(img0, img1)
 
 # Rainbow colors (default when color=None)
-vis.plot_keypoints(matches["mkpts0"], matches["mkpts1"])
+vis.plot_keypoints(kpts0, kpts1)
 
 # Single color for all keypoints
-vis.plot_keypoints(matches["mkpts0"], matches["mkpts1"], color='g')
+vis.plot_keypoints(kpts0, kpts1, color='g')
 
 # Custom marker size
-vis.plot_keypoints(matches["mkpts0"], matches["mkpts1"], kps_size=10)
+vis.plot_keypoints(kpts0, kpts1, kps_size=10)
 
 # Custom marker style and transparency
-vis.plot_keypoints(matches["mkpts0"], matches["mkpts1"],
-                   marker='x', alpha=0.5, kps_size=8)
+vis.plot_keypoints(kpts0, kpts1, marker='x', alpha=0.5, kps_size=8)
 
 # Different colormap
-vis.plot_keypoints(matches["mkpts0"], matches["mkpts1"], cmap='viridis')
+vis.plot_keypoints(kpts0, kpts1, cmap='viridis')
 
 # Only keypoints on image 0
 vis.plot_keypoints(keypoints0=kpts0)
@@ -112,6 +121,8 @@ vis.plot_keypoints(keypoints0=kpts0)
 # Only keypoints on image 1
 vis.plot_keypoints(keypoints1=kpts1)
 ```
+
+![XFeat keypoints with rainbow coloring](../assets/images/vis_plot_keypoints.png)
 
 **Parameters:**
 
@@ -162,6 +173,10 @@ vis.plot_matches(matches["mkpts0"], matches["mkpts1"], alpha=0.3)
 vis.plot_matches(matches["mkpts0"], matches["mkpts1"], cmap='coolwarm')
 ```
 
+| Rainbow (default) | Single color (`color='g'`) |
+|:---:|:---:|
+| ![Rainbow matches](../assets/images/vis_plot_matches_rainbow.png) | ![Green matches](../assets/images/vis_plot_matches_green.png) |
+
 **Parameters:**
 
 | Parameter | Type | Default | Description |
@@ -189,6 +204,8 @@ vis.plot_matches(mkpts0[inliers], mkpts1[inliers], color='g')
 vis.add_text(f"Inliers: {inliers.sum()} / {len(inliers)}")
 vis.save("results/inliers.png")
 ```
+
+![Inlier/outlier coloring — green = inlier, red = outlier](../assets/images/vis_inliers_outliers.png)
 
 ## Text annotations
 
@@ -358,22 +375,22 @@ vis.plot_keypoints(torch.rand(100, 2), np.random.rand(100, 2))
 vis.plot_matches(torch.rand(50, 2), np.random.rand(50, 2))
 ```
 
-## Complete example: Feature comparison
+## Complete example: XFeat matching
 
 ```python
 from easy_local_features import getExtractor
 from easy_local_features.utils import io, ops, vis
 
-img0 = ops.resize_short_edge(io.fromPath("tests/assets/megadepth0.jpg"), 320)[0]
-img1 = ops.resize_short_edge(io.fromPath("tests/assets/megadepth1.jpg"), 320)[0]
+img0 = ops.resize_short_edge(io.fromPath("tests/assets/megadepth0.jpg"), 480)[0]
+img1 = ops.resize_short_edge(io.fromPath("tests/assets/megadepth1.jpg"), 480)[0]
 
-methods = ["superpoint", "aliked", "xfeat", "disk"]
+extractor = getExtractor("xfeat", {"top_k": 2048}).to("cuda")
+matches = extractor.match(img0, img1)
 
-for name in methods:
-    extractor = getExtractor(name, {"top_k": 2048}).to("cpu")
-    matches = extractor.match(img0, img1)
-
-    vis.plot_pair(img0, img1, title=f"{name} ({len(matches['mkpts0'])} matches)", figsize=(10, 5))
-    vis.plot_matches(matches["mkpts0"], matches["mkpts1"], linewidth=0.3, alpha=0.7)
-    vis.save(f"results/{name}.png", dpi=150, bbox_inches='tight')
+vis.plot_pair(img0, img1, title=f"XFeat ({len(matches['mkpts0'])} matches)", figsize=(10, 5))
+vis.plot_matches(matches["mkpts0"], matches["mkpts1"], linewidth=0.3, alpha=0.6)
+vis.add_text(f"{len(matches['mkpts0'])} matches")
+vis.save("results/xfeat.png", dpi=150, bbox_inches='tight')
 ```
+
+![Complete XFeat example](../assets/images/hero_xfeat.png)

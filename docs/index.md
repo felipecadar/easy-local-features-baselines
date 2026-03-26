@@ -12,6 +12,8 @@ Unified, minimal wrappers around many local feature extractors and matchers (cla
 - Simple nearest-neighbor matching by default, with optional advanced matchers (LightGlue, SuperGlue, LoFTR).
 - Works on **CPU, CUDA, and MPS** devices.
 
+![XFeat matching example](assets/images/hero_xfeat.png)
+
 ## Quick example
 
 ```python
@@ -21,12 +23,12 @@ from easy_local_features.utils import io, vis
 img0 = io.fromPath("tests/assets/megadepth0.jpg")
 img1 = io.fromPath("tests/assets/megadepth1.jpg")
 
-extractor = getExtractor("aliked", {"top_k": 2048}).to("cuda")
+extractor = getExtractor("xfeat", {"top_k": 2048}).to("cuda")
 matches = extractor.match(img0, img1)
 
-vis.plot_pair(img0, img1, title="ALIKED")
+vis.plot_pair(img0, img1, title="XFeat")
 vis.plot_matches(matches["mkpts0"], matches["mkpts1"])
-vis.save("results/aliked.png")
+vis.save("results/xfeat.png")
 ```
 
 ## Stable minimal API
