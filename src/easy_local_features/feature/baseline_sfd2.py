@@ -34,7 +34,7 @@ class SFD2_baseline(BaseExtractor):
         )
 
         weights = downloadModel("sfd2", "20220810_ressegnetv2_wapv2_ce_sd2mfsf_uspg.pth", weights_link)
-        self.model.model.load_state_dict(torch.load(weights, map_location="cpu")["model"], strict=False)
+        self.model.model.load_state_dict(torch.load(weights, map_location="cpu", weights_only=False)["model"], strict=False)
         self.matcher = NearestNeighborMatcher()
 
     def detectAndCompute(self, img, return_dict=False):
@@ -58,7 +58,7 @@ class SFD2_baseline(BaseExtractor):
         return pred["keypoints"], pred["descriptors"]
 
     def detect(self, img):
-        raise NotImplementedError("This method is not implemented in this class")
+        return self.detectAndCompute(img, return_dict=True)["keypoints"]
 
     def compute(self, img, kps):
         raise NotImplementedError("This method is not implemented in this class")

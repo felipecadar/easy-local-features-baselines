@@ -1,7 +1,7 @@
 import importlib
 import os
 import json
-from typing import TYPE_CHECKING, Any, Dict
+from typing import TYPE_CHECKING, Any, Dict, List
 from .feature.basemodel import BaseExtractor
 
 os.environ["TFHUB_CACHE_DIR"] = os.path.expanduser(
@@ -40,11 +40,24 @@ available_detectors = [
     "rekd",
 ]
 
+# Unified list: all extractors + detectors + previously unregistered but functional methods
+available_methods: List[str] = sorted(set(
+    available_extractors + available_detectors + [
+        "croco",
+        "dinov2",
+        "dinov3",
+        "resnet",
+        "sfd2",
+        "superpoint_open",
+        "vgg",
+    ]
+))
+
 
 def importByName(name):
     package_name_feature = f"easy_local_features.feature.baseline_{name}"
     package_name_matching = f"easy_local_features.matching.baseline_{name}"
-    
+
     try:
         importlib.import_module(package_name_feature)
     except ModuleNotFoundError:
@@ -63,44 +76,65 @@ def importByName(name):
         f"Could not find a subclass of BaseExtractor that contains <{name}>")
 
 
-def getExtractor(extractor_name: str, conf=None):
+def getMethod(name: str, conf=None) -> BaseExtractor:
+    """Unified factory for any method (extractor, detector, or matcher).
+
+    Accepts the same variation syntax as getExtractor (e.g., "lightglue:superpoint").
+    """
     if conf is None:
         conf = {}
-    
+
     variation = None
-    if ":" in extractor_name:
-        extractor_name, variation = extractor_name.split(":", 1)
+    if ":" in name:
+        name, variation = name.split(":", 1)
 
-    assert extractor_name in available_extractors, (
-        f"Invalid extractor {extractor_name}. Available extractors: {available_extractors}"
-    )
-    
+    if name not in available_methods:
+        raise ValueError(
+            f"Unknown method '{name}'. Available methods: {available_methods}"
+        )
+
     if variation is not None:
-        if extractor_name == "lightglue":
+        if name == "lightglue":
             conf["features"] = variation
-        elif extractor_name == "desc_reasoning":
+        elif name == "desc_reasoning":
             conf["pretrained"] = variation
-        # We can add more mappings here if other models use the variation syntax
-            
-    extractor = importByName(extractor_name)
-    return extractor(conf)
 
-def getDetector(detector_name: str, conf={}):
-    assert detector_name in available_detectors, (
-        f"Invalid detector {detector_name}. Available detectors: {available_detectors}"
+    cls = importByName(name)
+    return cls(conf)
+
+
+def getExtractor(extractor_name: str, conf=None) -> BaseExtractor:
+    """Get a feature extractor by name. Backward-compatible wrapper around getMethod."""
+    if conf is None:
+        conf = {}
+
+    base_name = extractor_name.split(":")[0] if ":" in extractor_name else extractor_name
+    assert base_name in available_extractors, (
+        f"Invalid extractor {base_name}. Available extractors: {available_extractors}"
     )
-    det = importByName(detector_name)
-    return det(conf)
+    return getMethod(extractor_name, conf)
+
+
+def getDetector(detector_name: str, conf=None) -> BaseExtractor:
+    """Get a detector by name. Backward-compatible wrapper around getMethod."""
+    if conf is None:
+        conf = {}
+
+    base_name = detector_name.split(":")[0] if ":" in detector_name else detector_name
+    assert base_name in available_detectors, (
+        f"Invalid detector {base_name}. Available detectors: {available_detectors}"
+    )
+    return getMethod(detector_name, conf)
 
 
 def describe(name: str) -> Dict[str, Any]:
     """Describe an extractor/detector without instantiating it."""
     base_name = name.split(":")[0] if ":" in name else name
-    if base_name in available_extractors or base_name in available_detectors:
+    if base_name in available_methods:
         cls = importByName(base_name)
         return cls.describe()
     raise ValueError(
-        f"Unknown method '{name}'. Available extractors: {available_extractors}. Available detectors: {available_detectors}."
+        f"Unknown method '{name}'. Available methods: {available_methods}."
     )
 
 
@@ -116,6 +150,23 @@ if TYPE_CHECKING:
     from easy_local_features.feature.baseline_roma import RoMa_baseline, ROMAConfig
     from easy_local_features.feature.baseline_dad import DAD_baseline, DadConfig
     from easy_local_features.feature.baseline_rekd import REKD_baseline
+
+    @overload
+    def getMethod(name: Literal["superpoint"], conf: SuperPointConfig = ...) -> SuperPoint_baseline: ...
+    @overload
+    def getMethod(name: Literal["xfeat"], conf: XFeatConfig = ...) -> XFeat_baseline: ...
+    @overload
+    def getMethod(name: Literal["aliked"], conf: ALIKEDConfig = ...) -> ALIKED_baseline: ...
+    @overload
+    def getMethod(name: Literal["orb"], conf: ORBConfig = ...) -> ORB_baseline: ...
+    @overload
+    def getMethod(name: Literal["romav2"], conf: ROMAV2Config = ...) -> RoMaV2_baseline: ...
+    @overload
+    def getMethod(name: Literal["roma"], conf: ROMAConfig = ...) -> RoMa_baseline: ...
+    @overload
+    def getMethod(name: Literal["dad"], conf: DadConfig = ...) -> DAD_baseline: ...
+    @overload
+    def getMethod(name: Literal["rekd"], conf: Dict[str, Any] = ...) -> REKD_baseline: ...
 
     @overload
     def getExtractor(extractor_name: Literal["superpoint"], conf: SuperPointConfig = ...) -> SuperPoint_baseline: ...
@@ -139,7 +190,7 @@ if TYPE_CHECKING:
 def main() -> None:
     """Console entrypoint for `easy-local-features`.
 
-    Keeps the CLI intentionally minimal: list available extractors.
+    Keeps the CLI intentionally minimal: list available methods.
     """
     import argparse
 
@@ -155,10 +206,15 @@ def main() -> None:
         help="List available detectors and exit.",
     )
     parser.add_argument(
+        "--list-all",
+        action="store_true",
+        help="List all available methods (extractors, detectors, matchers) and exit.",
+    )
+    parser.add_argument(
         "--describe",
         type=str,
         default=None,
-        help="Print configuration defaults/schema for an extractor or detector (no model init).",
+        help="Print configuration defaults/schema for any method (no model init).",
     )
     args = parser.parse_args()
 
@@ -168,6 +224,10 @@ def main() -> None:
         return
     if args.list_detectors:
         for name in available_detectors:
+            print(name)
+        return
+    if args.list_all:
+        for name in available_methods:
             print(name)
         return
 

@@ -51,7 +51,7 @@ class RoMaV2_baseline(BaseExtractor):
         "top_k": 5000,
         "setting": "precise",
         "compile": False,  # torch.compile is often fragile on MPS; enable explicitly if you want it
-        "device": "auto",
+        "device": "cpu",
         "H_lr": None,
         "W_lr": None,
         "H_hr": None,

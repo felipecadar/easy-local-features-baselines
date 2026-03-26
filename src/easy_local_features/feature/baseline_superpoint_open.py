@@ -242,7 +242,7 @@ class OpenSPModel(nn.Module):
         return pred
 
 
-class SuperPoint_baseline(BaseExtractor):
+class SuperPoint_Open_baseline(BaseExtractor):
     METHOD_TYPE = MethodType.DETECT_DESCRIBE
     default_conf = {
         "top_k": 2048,
@@ -276,7 +276,7 @@ class SuperPoint_baseline(BaseExtractor):
         return self.detectAndCompute(img, return_dict=True)["keypoints"]
 
     def compute(self, img, keypoints):
-        raise NotImplemented
+        raise NotImplementedError("SuperPoint_open does not support compute(); use detectAndCompute().")
 
     def to(self, device):
         self.device = device

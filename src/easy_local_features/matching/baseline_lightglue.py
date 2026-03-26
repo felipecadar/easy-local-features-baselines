@@ -2,12 +2,13 @@ import torch
 from omegaconf import OmegaConf
 
 from kornia.feature import LightGlue
-from ..feature.basemodel import BaseExtractor
+from ..feature.basemodel import BaseExtractor, MethodType
 from .. import getExtractor
 from ..utils import io, vis, ops
 
 class LightGlue_baseline(BaseExtractor):
-    defalut_conf = {
+    METHOD_TYPE = MethodType.END2END_MATCHER
+    default_conf = {
         "features": "superpoint",
         "top_k": 2048,
     }
@@ -17,8 +18,8 @@ class LightGlue_baseline(BaseExtractor):
     }
     
     def __init__(self, conf={}):
-        self.conf = conf = OmegaConf.merge(OmegaConf.create(self.defalut_conf), conf)
-        features = conf.get("features", self.defalut_conf["features"])
+        self.conf = conf = OmegaConf.merge(OmegaConf.create(self.default_conf), conf)
+        features = conf.get("features", self.default_conf["features"])
         
         assert features in LightGlue.features, f"Invalid feature {features}. Available features: {list(LightGlue.features.keys())}"
         

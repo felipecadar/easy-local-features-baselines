@@ -148,6 +148,7 @@ class DeDoDe_baseline(BaseExtractor):
         self.model.to(device)
         self.DEV = device
         self.model.eval()
+        return self
 
     @torch.inference_mode()
     def match(self, image1, image2):

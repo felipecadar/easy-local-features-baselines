@@ -1,4 +1,10 @@
 import tensorflow as tf
+# Force TensorFlow to CPU-only to avoid XLA/GPU JIT compilation issues
+# when the CUDA SDK isn't fully configured for TF. This does NOT affect PyTorch CUDA.
+try:
+    tf.config.set_visible_devices([], "GPU")
+except RuntimeError:
+    pass  # Devices already initialized
 import tensorflow_hub as hub
 import torch
 from omegaconf import OmegaConf

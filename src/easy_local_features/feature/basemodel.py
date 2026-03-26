@@ -282,11 +282,13 @@ class BaseExtractor(ABC):
             image2: Second image (path/array/tensor).
 
         Returns:
-            dict with at least:
-                - mkpts0: matched keypoints from image1, [M, 2] or [1, M, 2]
-                - mkpts1: matched keypoints from image2, [M, 2] or [1, M, 2]
-            and optionally matcher-specific items: matches0, matches1,
-            matching_scores0, matching_scores1, similarity.
+            For a single image pair, a dict. For batched inputs, a list of dicts.
+            Each dict contains at minimum:
+                - mkpts0: matched keypoints from image1, shape [M, 2]
+                - mkpts1: matched keypoints from image2, shape [M, 2]
+            Additional matcher-specific keys may be present (matches0, matches1,
+            matching_scores0, matching_scores1, similarity, scores, etc.)
+            but should not be relied upon across different matchers.
         """
         # Ensure a matcher exists; lazily fall back to a simple NN matcher.
         if not hasattr(self, "matcher") or self.matcher is None:

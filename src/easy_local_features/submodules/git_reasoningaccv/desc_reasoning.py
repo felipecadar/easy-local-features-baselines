@@ -1,8 +1,9 @@
+import sys
 import warnings
 import torch
 from omegaconf import OmegaConf
 import torch.nn.functional as F
-import os 
+import os
 from easy_local_features.submodules.git_reasoningaccv.utils import resize_long_edge
 from easy_local_features.utils import ops
 import time
@@ -345,8 +346,10 @@ class Reasoning(torch.nn.Module):
     def __init__(self, reasoning_model, dev=None):
         super().__init__()
         self.conf = conf = reasoning_model.conf
-        if dev is not None:
+        if dev is None or dev == "auto":
             dev = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        elif isinstance(dev, str):
+            dev = torch.device(dev)
             
         self.dev = dev
         print(f'Looking for "{conf.extractor.model_name}"')
@@ -378,8 +381,13 @@ class Reasoning(torch.nn.Module):
             self.extractor = SuperPoint(conf.extractor).eval()
                 
         elif 'xfeat' in conf.extractor.model_name:
+            # Clear stale 'modules' from sys.modules to avoid collision with DEAL's modules package
+            _stale = {k: sys.modules.pop(k) for k in list(sys.modules) if k == "modules" or k.startswith("modules.")}
             self.extractor = torch.hub.load('verlab/accelerated_features', 'XFeat', pretrained = True, top_k = conf.extractor.max_num_keypoints, detection_threshold=0.)
-       
+            for k, v in _stale.items():
+                sys.modules.setdefault(k, v)
+            self.extractor.to(self.dev)
+
         elif 'relf' in conf.extractor.model_name:
             from easy_local_features.feature.baseline_superpoint import SuperPoint_baseline
             from easy_local_features.feature.baseline_relf import RELF_baseline
@@ -396,7 +404,12 @@ class Reasoning(torch.nn.Module):
             raise ValueError(f"Model {conf.extractor.model_name} not found")
         
         self.reasoning_model = reasoning_model
-        
+
+        # Move all submodules to the target device
+        self.dino.to(self.dev)
+        self.extractor.to(self.dev)
+        self.reasoning_model.to(self.dev)
+
     def forward(self, data):
         start_extract = time.time()
         if 'xfeat' in self.conf.extractor.model_name:

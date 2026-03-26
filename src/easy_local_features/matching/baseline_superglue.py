@@ -101,7 +101,7 @@ class SuperGlue_baseline(BaseExtractor):
             img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
         return torch.from_numpy(img/255.).float()[None, None].to(self.DEV)
 
-    def match(self, img0, img1, kps0=None, desc0=None, kps1=None, desc1=None):
+    def match(self, img0, img1, *, kps0=None, desc0=None, kps1=None, desc1=None):
         """Unified matcher API.
         - If keypoints/descriptors are provided, uses them.
         - If not provided but a detector is attached via `addDetector`, uses it.

@@ -68,8 +68,8 @@ class VGG_baseline(BaseExtractor):
     def to(self, device):
         self.model.to(device)
         self.device = device
+        return self
 
-        
     @property
     def has_detector(self):
         return False

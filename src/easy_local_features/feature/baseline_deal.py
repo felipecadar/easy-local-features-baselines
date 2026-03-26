@@ -36,6 +36,8 @@ class DEAL_baseline(BaseExtractor):
         self.sift = cv2.SIFT_create(nfeatures=self.max_kps, contrastThreshold=0.04, edgeThreshold=10)
         self.deal = torch.hub.load("verlab/DEAL_NeurIPS_2021", "DEAL", True, cache)
         self.deal.device = self.DEV
+        self.deal.net.to(self.DEV)
+        self._fix_stn_device(self.DEV)
         self.deal.net.eval()
 
         self.matcher = NearestNeighborMatcher()
@@ -47,9 +49,7 @@ class DEAL_baseline(BaseExtractor):
             kps = self.detect(gray)
             kps, desc = self.compute(gray, kps)
 
-        kps = torch.tensor([kp.pt for kp in kps]).to(self.DEV).unsqueeze(0)
-        desc = desc.to(self.DEV)
-
+        # compute() already returns tensors with batch dim
         if return_dict:
             return {"keypoints": kps, "descriptors": desc}
 
@@ -74,11 +74,27 @@ class DEAL_baseline(BaseExtractor):
 
         desc = torch.from_numpy(desc).to(self.DEV).unsqueeze(0)
 
-        return kps, desc
+        kps_tensor = torch.tensor([kp.pt for kp in kps]).to(self.DEV).unsqueeze(0)
+        return kps_tensor, desc
+
+    def _fix_stn_device(self, device):
+        """Update SpatialTransformer's hardcoded device and internal tensors.
+        The upstream hub code creates SpatialTransformer with self.device = 'cuda'
+        and stores self.pi as a plain tensor (not a buffer), so nn.Module.to() won't move them."""
+        dev = torch.device(device) if isinstance(device, str) else device
+        # Fix every module in the tree that has a .device attribute
+        for mod in self.deal.net.modules():
+            if hasattr(mod, "device") and isinstance(mod.device, torch.device):
+                mod.device = dev
+            if hasattr(mod, "pi") and isinstance(mod.pi, torch.Tensor):
+                mod.pi = mod.pi.to(dev)
 
     def to(self, device):
         self.deal.device = device
+        self.deal.net.to(device)
+        self._fix_stn_device(device)
         self.DEV = device
+        return self
 
     @property
     def has_detector(self):

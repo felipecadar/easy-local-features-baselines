@@ -30,8 +30,9 @@ class DAD_baseline(BaseExtractor):
         self.resize = conf.get("resize", self.default_conf["resize"])
         self.nms_size = conf.get("nms_size", self.default_conf["nms_size"])
 
+        self.DEV = torch.device("cpu")
         self.detector = dad.load_DaD(resize=self.resize, nms_size=self.nms_size)
-        self.DEV = get_best_device()
+        self.detector.to(self.DEV)
         # Intentionally no matcher: DaD is detector-only.
 
     def detect(self, image, return_dict: bool = False):

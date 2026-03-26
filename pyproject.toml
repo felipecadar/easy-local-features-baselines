@@ -28,6 +28,7 @@ dependencies = [
     "romav2>=2.0.0",
     "timm>=0.9",
     "loguru==0.6.0",
+    "torchmetrics>=1.9.0",
 ]
 
 [project.scripts]

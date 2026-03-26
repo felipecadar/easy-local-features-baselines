@@ -1,3 +1,4 @@
+import sys
 import torch
 import numpy as np
 import torch.nn.functional as F
@@ -7,6 +8,18 @@ from omegaconf import OmegaConf
 from .basemodel import BaseExtractor, MethodType
 from ..utils import ops
 from typing import TypedDict
+
+
+def _hub_load_xfeat(**kwargs):
+    """Load XFeat via torch.hub, working around sys.modules['modules'] collisions
+    from other verlab repos (e.g. DEAL) that also ship a top-level 'modules' package."""
+    stale = {k: sys.modules.pop(k) for k in list(sys.modules) if k == "modules" or k.startswith("modules.")}
+    try:
+        return torch.hub.load("verlab/accelerated_features", "XFeat", **kwargs)
+    finally:
+        # Restore any entries we removed (xfeat's own 'modules' entries stay)
+        for k, v in stale.items():
+            sys.modules.setdefault(k, v)
 
 
 class XFeatConfig(TypedDict):
@@ -33,9 +46,7 @@ class XFeat_baseline(BaseExtractor):
         self.conf = conf = OmegaConf.merge(OmegaConf.create(self.default_conf), conf)
         device = "cpu"
         self.device = torch.device(device)
-        self.model = torch.hub.load(
-            "verlab/accelerated_features",
-            "XFeat",
+        self.model = _hub_load_xfeat(
             pretrained=True,
             top_k=conf.top_k,
             detection_threshold=conf.detection_threshold,

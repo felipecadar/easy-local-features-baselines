@@ -42,7 +42,7 @@ class Desc_Reasoning_baseline(BaseExtractor):
         # Optional: a specific weight filename inside the checkpoint folder
         "weights_path": None,
         # Device selection: if not None, the Reasoning wrapper will auto-pick CUDA if available
-        "device": "auto",
+        "device": "cpu",
         # Cache directory under ~/.cache/torch/hub/checkpoints/easy_local_features/desc_reasoning
         "cache_namespace": "desc_reasoning",
 
@@ -179,6 +179,12 @@ class Desc_Reasoning_baseline(BaseExtractor):
             mod = getattr(self.pipeline, mod_name, None)
             if hasattr(mod, "to"):
                 mod.to(self.DEV)
+            # XFeat uses a .dev attribute for internal device routing
+            if hasattr(mod, "dev"):
+                mod.dev = self.DEV
+        # Also move detector if present (relf variant)
+        if hasattr(self.pipeline, "detector") and hasattr(self.pipeline.detector, "to"):
+            self.pipeline.detector.to(self.DEV)
         # Update pipeline hint
         self.pipeline.dev = self.DEV
         return self

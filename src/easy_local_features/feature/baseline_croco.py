@@ -50,12 +50,14 @@ class CroCo_baseline(BaseExtractor):
         return features
 
     def detectAndCompute(self, img, return_dict=None):
-        raise NotImplemented
+        raise NotImplementedError("CroCo is descriptor-only; use compute() with keypoints.")
 
     def detect(self, img, op=None):
-        raise NotImplemented
+        raise NotImplementedError("CroCo is descriptor-only; use compute() with keypoints.")
 
     def compute(self, img, keypoints=None, return_dict=False):
+        if keypoints is None:
+            raise ValueError("CroCo requires keypoints (descriptor-only method).")
         img = ops.prepareImage(img).to(self.device)
 
         if self.conf.allow_resize:
@@ -77,6 +79,7 @@ class CroCo_baseline(BaseExtractor):
     def to(self, device):
         self.model.to(device)
         self.device = device
+        return self
 
     @property
     def has_detector(self):

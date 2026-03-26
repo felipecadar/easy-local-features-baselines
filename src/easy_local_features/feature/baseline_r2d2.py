@@ -147,6 +147,7 @@ class R2D2_baseline(BaseExtractor):
     def to(self, device):
         self.model.to(device)
         self.DEV = device
+        return self
 
     @property
     def has_detector(self):
