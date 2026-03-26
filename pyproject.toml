@@ -1,7 +1,7 @@
 [project]
 name = "easy-local-features"
 version = "0.8.24"
-description = "Add your description here"
+description = "Unified, minimal wrappers around many local feature extractors and matchers (classical + learned)."
 readme = "README.md"
 authors = [
     { name = "Felipe Cadar", email = "cadar@dcc.ufmg.br" }
@@ -30,6 +30,12 @@ dependencies = [
     "loguru==0.6.0",
     "torchmetrics>=1.9.0",
 ]
+
+[project.urls]
+Homepage = "https://github.com/felipecadar/easy-local-features-baselines"
+Repository = "https://github.com/felipecadar/easy-local-features-baselines"
+Documentation = "https://felipecadar.github.io/easy-local-features-baselines/"
+Issues = "https://github.com/felipecadar/easy-local-features-baselines/issues"
 
 [project.scripts]
 easy-local-features = "easy_local_features:main"
