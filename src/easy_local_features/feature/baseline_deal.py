@@ -61,20 +61,26 @@ class DEAL_baseline(BaseExtractor):
         with torch.no_grad():
             kps = self.sift.detect(gray, None)
 
-        return kps
+        return torch.tensor([kp.pt for kp in kps], dtype=torch.float32).to(self.DEV).unsqueeze(0)
 
     def compute(self, img, kps):
         gray = ops.to_cv(ops.prepareImage(img), to_gray=True)
 
-        if not isinstance(kps[0], cv2.KeyPoint):
-            kps = [cv2.KeyPoint(kp[0], kp[1], 0) for kp in kps]
+        # Convert tensor keypoints to cv2.KeyPoint list for DEAL's SIFT-based compute
+        if isinstance(kps, torch.Tensor):
+            pts = kps.squeeze(0) if kps.ndim == 3 else kps  # [N, 2]
+            cv_kps = [cv2.KeyPoint(float(pt[0]), float(pt[1]), 0) for pt in pts]
+        elif isinstance(kps[0], cv2.KeyPoint):
+            cv_kps = kps
+        else:
+            cv_kps = [cv2.KeyPoint(float(kp[0]), float(kp[1]), 0) for kp in kps]
 
         with torch.no_grad():
-            desc = self.deal.compute(gray, kps)
+            desc = self.deal.compute(gray, cv_kps)
 
         desc = torch.from_numpy(desc).to(self.DEV).unsqueeze(0)
 
-        kps_tensor = torch.tensor([kp.pt for kp in kps]).to(self.DEV).unsqueeze(0)
+        kps_tensor = torch.tensor([kp.pt for kp in cv_kps], dtype=torch.float32).to(self.DEV).unsqueeze(0)
         return kps_tensor, desc
 
     def _fix_stn_device(self, device):

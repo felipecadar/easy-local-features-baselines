@@ -9,6 +9,9 @@ from omegaconf import OmegaConf
 from romav2 import RoMaV2
 import romav2.device as romav2_device
 import romav2.romav2 as romav2_mod
+import romav2.geometry as romav2_geometry
+import romav2.matcher as romav2_matcher
+import romav2.refiner as romav2_refiner
 
 from .basemodel import BaseExtractor, MethodType
 from ..utils import ops
@@ -67,6 +70,9 @@ class RoMaV2_baseline(BaseExtractor):
 
         self.device = self._resolve_device(self.conf.device)
         self.model: RoMaV2 = self._build_model(device=self.device)
+        # bfloat16 is not fully supported on CPU; cast to float32 for CPU inference
+        if self.device.type == "cpu":
+            self.model.float()
         self.model.eval()
 
     def _resolve_device(self, dev: str) -> torch.device:
@@ -79,10 +85,13 @@ class RoMaV2_baseline(BaseExtractor):
         return torch.device(dev)
 
     def _set_romav2_global_device(self, device: torch.device) -> None:
-        # romav2 uses a global `device` imported as a module-level symbol.
-        # We must update BOTH the source module and the already-imported alias.
+        # romav2 uses a global `device` imported as a module-level symbol
+        # in multiple submodules. We must update ALL of them.
         romav2_device.device = device
         romav2_mod.device = device
+        romav2_geometry.device = device
+        romav2_matcher.device = device
+        romav2_refiner.device = device
 
     def _build_model(self, device: torch.device) -> RoMaV2:
         self._set_romav2_global_device(device)
@@ -108,6 +117,9 @@ class RoMaV2_baseline(BaseExtractor):
         self._set_romav2_global_device(self.device)
         # Recreate model to ensure internal globals + compiled state are consistent.
         self.model = self._build_model(device=self.device)
+        # bfloat16 is not fully supported on CPU; cast to float32 for CPU inference
+        if self.device.type == "cpu":
+            self.model.float()
         self.model.eval()
         return self
 

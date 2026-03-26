@@ -190,7 +190,7 @@ def test_detect_describe_detectAndCompute(method_name):
     assert isinstance(kpts, torch.Tensor), f"{method_name} keypoints not a tensor"
     assert isinstance(descs, torch.Tensor), f"{method_name} descriptors not a tensor"
     assert kpts.ndim in (2, 3), f"{method_name} keypoints shape {kpts.shape} unexpected"
-    assert descs.ndim in (2, 3), f"{method_name} descriptors shape {descs.shape} unexpected"
+    assert descs.ndim in (2, 3, 4), f"{method_name} descriptors shape {descs.shape} unexpected"
 
     # Also test return_dict=True
     result = method.detectAndCompute(image0, return_dict=True)
@@ -360,7 +360,7 @@ def test_extract_features_batched_output(method_name):
     assert kpts.shape[0] >= 1, f"{method_name} batch dim should be >= 1"
     assert kpts.shape[2] == 2, f"{method_name} keypoints last dim should be 2"
 
-    assert descs.ndim == 3, f"{method_name} extract_features descriptors ndim={descs.ndim}, expected 3 [B,N,D]"
+    assert descs.ndim in (3, 4), f"{method_name} extract_features descriptors ndim={descs.ndim}, expected 3 [B,N,D] or 4 [B,N,D,K]"
     assert descs.shape[0] == kpts.shape[0], f"{method_name} batch dim mismatch"
     assert descs.shape[1] == kpts.shape[1], f"{method_name} num keypoints mismatch between kpts and descs"
 

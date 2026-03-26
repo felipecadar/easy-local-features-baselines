@@ -66,7 +66,9 @@ def estimate_pose(kpts0, kpts1, K0, K1, norm_thresh, conf=0.99999):
     return ret
 
 
-def get_grid(B, H, W, device=get_best_device()):
+def get_grid(B, H, W, device=None):
+    if device is None:
+        device = torch.device("cpu")
     x1_n = torch.meshgrid(
         *[torch.linspace(-1 + 1 / n, 1 - 1 / n, n, device=device) for n in (B, H, W)],
         indexing="ij",
@@ -123,7 +125,7 @@ def extract_patches_from_coords(x: torch.Tensor, coords: torch.Tensor, patch_siz
 def sample_keypoints(
     keypoint_probs: torch.Tensor,
     num_samples=8192,
-    device=get_best_device(),
+    device=None,
     use_nms=True,
     nms_size=1,
     sample_topk=True,
@@ -137,6 +139,8 @@ def sample_keypoints(
     subpixel_temp=0.5,
 ):
     B, H, W = keypoint_probs.shape
+    if device is None:
+        device = keypoint_probs.device
     if increase_coverage:
         weights = (
             -(torch.linspace(-2, 2, steps=coverage_size, device=device) ** 2)

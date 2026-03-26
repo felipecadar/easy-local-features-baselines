@@ -60,18 +60,35 @@ class CroCo_baseline(BaseExtractor):
             raise ValueError("CroCo requires keypoints (descriptor-only method).")
         img = ops.prepareImage(img).to(self.device)
 
-        if self.conf.allow_resize:
-            img = F.interpolate(img, [int(x // 14 * 14) for x in img.shape[-2:]])
+        # CroCo's PatchEmbed enforces exact img_size; resize to match
+        target_h, target_w = self.model.patch_embed.img_size
+        if img.shape[2] != target_h or img.shape[3] != target_w:
+            # Scale keypoints to match the resized image
+            scale_x = target_w / img.shape[3]
+            scale_y = target_h / img.shape[2]
+            keypoints = keypoints.clone()
+            keypoints[..., 0] *= scale_x
+            keypoints[..., 1] *= scale_y
+            img = F.interpolate(img, size=(target_h, target_w), mode="bilinear", align_corners=False)
 
-        desc, cls_token = self.model.get_intermediate_layers(img, n=1, return_class_token=True, reshape=True)[0]
+        # CroCo uses _encode_image which returns (features, pos, masks)
+        # features: [B, N_patches, C] where N_patches = (H/patch_size) * (W/patch_size)
+        with torch.no_grad():
+            features, pos, masks = self.model._encode_image(img, do_mask=False)
 
-        if keypoints is not None:
-            descriptors = self.sample_features(keypoints, desc)
+        # Reshape to spatial feature map [B, C, H_patches, W_patches]
+        B, N, C = features.shape
+        h_patches = img.shape[2] // self.model.patch_embed.patch_size[0]
+        w_patches = img.shape[3] // self.model.patch_embed.patch_size[1]
+        desc = features.permute(0, 2, 1).reshape(B, C, h_patches, w_patches)
+
+        patch_size = self.model.patch_embed.patch_size[0]
+        descriptors = self.sample_features(keypoints, desc, s=patch_size)
+
         if return_dict:
             return {
                 "descriptors": descriptors,
                 "keypoints": keypoints,
-                "global_descriptor": cls_token,
                 "feature_map": desc,
             }
         return keypoints, descriptors

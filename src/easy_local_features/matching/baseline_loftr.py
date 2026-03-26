@@ -17,7 +17,7 @@ class LoFTR_baseline(BaseExtractor):
     def __init__(self, conf=None, pretrained="outdoor"):
         if conf is not None:
             pretrained = conf.get("pretrained", pretrained)
-        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        self.device = torch.device("cpu")
         self.matcher = getLoFTR(pretrained=pretrained).to(self.device)
 
     @property

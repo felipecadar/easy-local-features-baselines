@@ -387,6 +387,7 @@ class Reasoning(torch.nn.Module):
             for k, v in _stale.items():
                 sys.modules.setdefault(k, v)
             self.extractor.to(self.dev)
+            self.extractor.dev = self.dev
 
         elif 'relf' in conf.extractor.model_name:
             from easy_local_features.feature.baseline_superpoint import SuperPoint_baseline
