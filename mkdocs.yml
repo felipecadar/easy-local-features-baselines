@@ -24,8 +24,9 @@ nav:
   - Getting Started: getting-started.md
   - User Guide:
       - Features overview: user-guide/features.md
-      - Ensemble: user-guide/ensemble.md
       - Matching: user-guide/matching.md
+      - Visualization: user-guide/visualization.md
+      - Ensemble: user-guide/ensemble.md
       - I/O and Ops: user-guide/io-ops.md
   - How-to:
       - Add a new extractor: how-to/add-a-new-extractor.md
@@ -34,6 +35,7 @@ nav:
   - Reference:
       - Extractors: reference/extractors.md
       - Matchers: reference/matchers.md
+      - CLI: reference/cli.md
   - API:
       - Feature: api/feature.md
       - Matching: api/matching.md
