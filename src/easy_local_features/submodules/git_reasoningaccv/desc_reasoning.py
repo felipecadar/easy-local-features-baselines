@@ -375,7 +375,9 @@ class Reasoning(torch.nn.Module):
             from kornia.feature import DeDoDe
             assert conf.extractor.model_name in ["dedode-G", "dedode-B"], f"Model {conf.extractor.model_name} not found in DeDoDe"
             descriptor_type = conf.extractor.model_name.split("-")[1]
-            self.extractor = DeDoDe.from_pretrained(detector_weights="L-upright", descriptor_weights=f"{descriptor_type}-upright")
+            # fp16 (the default) only works under CUDA autocast; use fp32 on CPU
+            amp_dtype = torch.float16 if self.dev.type == "cuda" else torch.float32
+            self.extractor = DeDoDe.from_pretrained(detector_weights="L-upright", descriptor_weights=f"{descriptor_type}-upright", amp_dtype=amp_dtype)
         elif 'superpoint' in conf.extractor.model_name:
             from easy_local_features.submodules.git_reasoningaccv.superpoint import SuperPoint
             self.extractor = SuperPoint(conf.extractor).eval()
@@ -411,8 +413,7 @@ class Reasoning(torch.nn.Module):
         self.extractor.to(self.dev)
         self.reasoning_model.to(self.dev)
 
-    def forward(self, data):
-        start_extract = time.time()
+    def extract(self, data):
         if 'xfeat' in self.conf.extractor.model_name:
             response = self.extractor.detectAndCompute(data['image'], top_k = self.conf.extractor.max_num_keypoints)
             extractor_pred = {
@@ -426,10 +427,11 @@ class Reasoning(torch.nn.Module):
             response = self.extractor(data)
             extractor_pred = response
         elif 'alike-n' in self.conf.extractor.model_name:
+            # ALIKE_baseline.detectAndCompute already returns batched [B, N, 2] / [B, N, D]
             keypoints, descriptors = self.extractor.detectAndCompute(data['image'])
             extractor_pred = {
-                'keypoints': keypoints.unsqueeze(0),
-                'descriptors': descriptors.unsqueeze(0),
+                'keypoints': keypoints,
+                'descriptors': descriptors,
             }
         elif 'relf' in self.conf.extractor.model_name:
             images = data['image'].to(self.dev)
@@ -439,10 +441,58 @@ class Reasoning(torch.nn.Module):
                 'keypoints': keypoints,
                 'descriptors': descriptors,
             }
-        else: 
+        else:
             raise ValueError(f"Model {self.conf.extractor.model_name} not found")
+        return extractor_pred
+
+    def extract_at(self, data, keypoints):
+        '''Compute base extractor descriptors at arbitrary keypoints.
+
+        keypoints: [B, N, 2] (x, y) pixel coordinates in the same convention as the
+        keypoints returned by extract() for the configured extractor.
+        '''
+        model_name = self.conf.extractor.model_name
+        image = data['image']
+        if 'xfeat' in model_name:
+            x, rh1, rw1 = self.extractor.preprocess_tensor(image)
+            M1, _K1, _H1 = self.extractor.net(x)
+            M1 = F.normalize(M1, dim=1)
+            # map keypoints from original image coords to the resized (div-by-32) frame
+            mkpts = keypoints / keypoints.new_tensor([rw1, rh1]).view(1, 1, -1)
+            feats = self.extractor.interpolator(M1, mkpts, H=x.shape[-2], W=x.shape[-1])
+            feats = F.normalize(feats, dim=-1)
+            extractor_pred = {'keypoints': keypoints, 'descriptors': feats}
+        elif 'dedode' in model_name:
+            b, c, h, w = image.shape
+            # replicate kornia DeDoDe.forward: imagenet-normalize, then zero-pad to /14
+            imgs = self.extractor.normalizer(image)
+            pd_h = 14 - h % 14 if h % 14 > 0 else 0
+            pd_w = 14 - w % 14 if w % 14 > 0 else 0
+            imgs = torch.nn.functional.pad(imgs, (0, pd_w, 0, pd_h), value=0.0)
+            kpts_n = 2.0 * keypoints / keypoints.new_tensor([w, h]) - 1
+            descriptors = self.extractor.describe(
+                imgs, kpts_n, apply_imagenet_normalization=False, crop_h=h, crop_w=w
+            )
+            extractor_pred = {'keypoints': keypoints, 'descriptors': descriptors}
+        elif model_name in ['superpoint', 'aliked-n']:
+            response = self.extractor.forward_desc(data, keypoints)
+            extractor_pred = {'keypoints': keypoints, 'descriptors': response['descriptors']}
+        elif 'alike-n' in model_name:
+            descriptors = self.extractor.compute(image, keypoints)
+            extractor_pred = {'keypoints': keypoints, 'descriptors': descriptors}
+        elif 'relf' in model_name:
+            keypoints, descriptors = self.extractor.compute(image.to(self.dev), keypoints)
+            extractor_pred = {'keypoints': keypoints, 'descriptors': descriptors}
+        else:
+            raise ValueError(f"Model {model_name} not found")
+        return extractor_pred
+
+    def forward(self, data, extractor_pred=None):
+        start_extract = time.time()
+        if extractor_pred is None:
+            extractor_pred = self.extract(data)
         end_extract = time.time()
-        
+
         start_dino = time.time()
         resized, scale = resize_long_edge(data['image'], 896)
         if self.conf.fix_dino_size > 0:
@@ -480,9 +530,27 @@ class Reasoning(torch.nn.Module):
         descritexture_features = response['reasoning_features'] # [B, N, D]
         semantic_features = response['semantic_features'] # [B, N, D]
         descriptors = torch.stack([descritexture_features, semantic_features], dim=-1) # [B, N, D, 2]
-        
+
         return keypoints, descriptors
-        
+
+    @torch.inference_mode()
+    def compute(self, image, keypoints):
+        image = ops.prepareImage(image).to(self.dev)
+
+        keypoints = torch.as_tensor(keypoints, dtype=torch.float32, device=self.dev)
+        if keypoints.dim() == 2:
+            keypoints = keypoints.unsqueeze(0)
+
+        extractor_pred = self.extract_at({'image': image}, keypoints)
+        response = self.forward({'image': image}, extractor_pred=extractor_pred)
+
+        keypoints = response['keypoints'] # [B, N, 2]
+        descritexture_features = response['reasoning_features'] # [B, N, D]
+        semantic_features = response['semantic_features'] # [B, N, D]
+        descriptors = torch.stack([descritexture_features, semantic_features], dim=-1) # [B, N, D, 2]
+
+        return keypoints, descriptors
+
     @torch.inference_mode()
     def match(self, data, pred={}):
         def find_nn(sim, ratio_thresh, distance_thresh):

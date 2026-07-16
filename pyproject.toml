@@ -1,6 +1,6 @@
 [project]
 name = "easy-local-features"
-version = "0.8.28"
+version = "0.8.29"
 description = "Unified, minimal wrappers around many local feature extractors and matchers (classical + learned)."
 readme = "README.md"
 authors = [

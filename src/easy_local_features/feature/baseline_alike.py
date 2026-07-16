@@ -118,7 +118,28 @@ class ALIKE_baseline(BaseExtractor):
         return self.detectAndCompute(img)[0]
 
     def compute(self, image, keypoints):
-        raise NotImplementedError("ALIKE_baseline.compute is not implemented; use detectAndCompute instead.")
+        from easy_local_features.submodules.git_alike.soft_detect import sample_descriptor
+
+        image = ops.prepareImage(image)
+        image = image.to(self.DEV)
+        H, W = image.shape[-2:]
+
+        keypoints = torch.as_tensor(keypoints, dtype=torch.float32, device=self.DEV)
+        squeeze_batch = keypoints.dim() == 2
+        if squeeze_batch:
+            keypoints = keypoints.unsqueeze(0)
+
+        with torch.no_grad():
+            descriptor_map, _ = self.model.extract_dense_map(image)
+            # normalize to (-1, 1) with the same (W-1, H-1) convention used by the detector
+            wh = keypoints.new_tensor([W - 1, H - 1])
+            keypoints_n = keypoints / wh * 2 - 1
+            descriptors = sample_descriptor(descriptor_map, keypoints_n, bilinear_interp=self.sub_pixel)
+            descriptors = torch.stack(descriptors, 0)
+
+        if squeeze_batch:
+            descriptors = descriptors.squeeze(0)
+        return descriptors
 
     def to(self, device):
         self.model.to(device)

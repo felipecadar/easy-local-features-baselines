@@ -167,9 +167,10 @@ class Desc_Reasoning_baseline(BaseExtractor):
         return kpts
 
     def compute(self, img, keypoints):
-        # Computing descriptors for arbitrary external keypoints isn't exposed by the
-        # Reasoning pipeline. This baseline acts as detect+describe.
-        raise NotImplementedError("Desc_Reasoning_baseline does not implement compute(keypoints); use detectAndCompute().")
+        image = ops.prepareImage(img).to(self.DEV) if self.DEV is not None else ops.prepareImage(img)
+        with torch.inference_mode():
+            keypoints, descriptors = self.pipeline.compute(image, keypoints)
+        return keypoints, descriptors
 
     def to(self, device):
         # Update internal device flag; Reasoning manages its own submodules
