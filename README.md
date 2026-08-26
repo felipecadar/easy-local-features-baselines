@@ -1,3 +1,5 @@
+
+
 # easy-local-features
 
 Unified, minimal wrappers around many local feature extractors and matchers (classical + learned).
@@ -12,6 +14,8 @@ Unified, minimal wrappers around many local feature extractors and matchers (cla
 > Built with DINOv3.
 
 ## Installation
+
+Requires Python >= 3.10.
 
 ```bash
 pip install easy-local-features
